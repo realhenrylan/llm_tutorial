@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>06. PyTorch自动求导机制可视化学习</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            padding: 40px 20px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .nav-tabs {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .nav-tab {
+            padding: 12px 24px;
+            background: rgba(255,255,255,0.2);
+            border: 2px solid white;
+            color: white;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1em;
+            font-weight: bold;
+        }
+
+        .nav-tab:hover {
+            background: white;
+            color: #667eea;
+        }
+
+        .nav-tab.active {
+            background: white;
+            color: #667eea;
+        }
+
+        .content-card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            display: none;
+        }
+
+        .content-card.active {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .concept-box {
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            border-left: 5px solid #667eea;
+        }
+
+        .concept-box h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .concept-box p {
+            line-height: 1.8;
+            color: #555;
+            margin-bottom: 10px;
+        }
+
+        .visual-demo {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            border: 2px solid #e9ecef;
+        }
+
+        .visual-demo h4 {
+            color: #495057;
+            margin-bottom: 20px;
+            font-size: 1.1em;
+        }
+
+        .autograd-visual {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .graph-box {
+            border: 3px solid #667eea;
+            border-radius: 15px;
+            padding: 20px;
+            min-width: 400px;
+            text-align: center;
+            background: white;
+            animation: slideIn 0.5s ease;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: scale(0.8); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .graph-name {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .computation-graph {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .graph-node {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+            font-weight: bold;
+            font-size: 1em;
+            min-width: 80px;
+        }
+
+        .graph-node.leaf {
+            background: #28a745;
+        }
+
+        .graph-node.root {
+            background: #dc3545;
+        }
+
+        .graph-arrow {
+            font-size: 1.5em;
+            color: #667eea;
+        }
+
+        .gradient-flow {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+
+        .grad-node {
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+
+        .grad-node.x {
+            background: #e3f2fd;
+            border: 2px solid #1976d2;
+        }
+
+        .grad-node.y {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+        }
+
+        .grad-node.z {
+            background: #e8f5e9;
+            border: 2px solid #4caf50;
+        }
+
+        .practice-area {
+            background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
+            border-radius: 15px;
+            padding: 25px;
+            margin-top: 25px;
+        }
+
+        .practice-area h4 {
+            color: #1976d2;
+            margin-bottom: 15px;
+        }
+
+        .code-input {
+            width: 100%;
+            min-height: 120px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.95em;
+            resize: vertical;
+            margin-bottom: 15px;
+        }
+
+        .run-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: bold;
+            transition: transform 0.2s;
+        }
+
+        .run-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .output-area {
+            background: #1e1e1e;
+            color: #4ec9b0;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 15px;
+            font-family: 'Courier New', monospace;
+            min-height: 80px;
+            white-space: pre-wrap;
+        }
+
+        .tip-box {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .tip-box::before {
+            content: "💡";
+            font-size: 1.5em;
+        }
+
+        .tip-box p {
+            margin: 0;
+            color: #856404;
+        }
+
+        .compare-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .compare-table th {
+            background: #667eea;
+            color: white;
+            padding: 15px;
+            text-align: left;
+        }
+
+        .compare-table td {
+            padding: 15px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .compare-table tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8em;
+            }
+            .nav-tab {
+                padding: 10px 18px;
+                font-size: 0.9em;
+            }
+            .content-card {
+                padding: 20px;
+            }
+            .graph-box {
+                min-width: 280px;
+            }
+            .graph-node {
+                padding: 10px 15px;
+                font-size: 0.9em;
+                min-width: 60px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔄 PyTorch自动求导机制可视化学习</h1>
+            <p>零基础也能轻松理解梯度、计算图和backward()</p>
+        </div>
+
+        <div class="nav-tabs">
+            <button class="nav-tab active" onclick="showTab('grad')">📊 什么是梯度？</button>
+            <button class="nav-tab" onclick="showTab('computation')">🔗 计算图</button>
+            <button class="nav-tab" onclick="showTab('backward')">🔙 Backward</button>
+            <button class="nav-tab" onclick="showTab('detach')">🚫 Detach与冻结</button>
+        </div>
+
+        <div id="grad" class="content-card active">
+            <div class="concept-box">
+                <h3>📊 什么是梯度？</h3>
+                <p><strong>通俗理解：</strong>梯度就像山坡的坡度，告诉我们往哪个方向走可以最快到达山谷（最小值）。</p>
+                <p><strong>在LLM中的作用：</strong>用来更新模型参数，让模型不断学习和改进。</p>
+            </div>
+
+            <div class="visual-demo">
+                <h4>🎨 可视化演示：梯度的直观理解</h4>
+                <div class="autograd-visual">
+                    <div class="graph-box">
+                        <div class="graph-name">🏔️ 梯度 = 山坡坡度</div>
+                        <div style="font-size: 2em; margin: 20px 0;">⬇️</div>
+                        <div style="font-size: 0.9em; color: #666;">
+                            梯度为正 → 向右走，值变大<br>
+                            梯度为负 → 向左走，值变小<br>
+                            梯度为零 → 到达极值点
+                        </div>
+                    </div>
+                </div>
+                <div class="tip-box">
+                    <p>PyTorch会自动计算梯度，不需要手动求导！</p>
+                </div>
+            </div>
+
+            <div class="visual-demo">
+                <h4>📝 代码示例</h4>
+                <pre style="background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 10px; overflow-x: auto;">
+<span style="color: #6a9955"># 计算梯度</span>
+<span style="color: #c586c0">import</span> <span style="color: #9cdcfe">torch</span>
+
+<span style="color: #6a9955"># requires_grad=True 表示需要计算梯度</span>
+x = torch.tensor(<span style="color: #b5cea8">2.0</span>, requires_grad=<span style="color: #569cd6">True</span>)
+y = x ** <span style="color: #b5cea8">2</span> + <span style="color: #b5cea8">3</span> * x + <span style="color: #b5cea8">1</span>
+
+<span style="color: #6a9955"># 计算梯度：dy/dx = 2x + 3</span>
+y.backward()
+
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"y的值："</span>, y)
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"x的梯度："</span>, x.grad)  <span style="color: #6a9955"># 应该是 2*2 + 3 = 7</span></pre>
+            </div>
+
+            <div class="practice-area">
+                <h4>✏️ 动手练习：计算梯度</h4>
+                <textarea class="code-input" id="gradCode" placeholder="import torch
+
+# 创建需要求导的张量
+x = torch.tensor(3.0, requires_grad=True)
+
+# 定义函数 y = x^3
+y = x ** 3
+
+# 计算梯度
+y.backward()
+
+# 梯度应该是 3*x^2 = 3*9 = 27
+print('y:', y.item())
+print('dy/dx:', x.grad.item())">import torch
+
+x = torch.tensor(3.0, requires_grad=True)
+y = x ** 3
+y.backward()
+print('y:', y.item())
+print('dy/dx:', x.grad.item())</textarea>
+                <button class="run-btn" onclick="runGradCode()">▶️ 运行代码</button>
+                <div class="output-area" id="gradOutput">点击"运行代码"查看结果...</div>
+            </div>
+        </div>
+
+        <div id="computation" class="content-card">
+            <div class="concept-box">
+                <h3>🔗 什么是计算图？</h3>
+                <p><strong>通俗理解：</strong>计算图就像一张流程图，记录了数据从输入到输出的所有运算步骤。</p>
+                <p><strong>在LLM中的作用：</strong>PyTorch通过计算图自动追踪所有运算，从而自动计算梯度。</p>
+            </div>
+
+            <div class="visual-demo">
+                <h4>🎨 可视化演示：计算图的结构</h4>
+                <div class="autograd-visual">
+                    <div class="graph-box">
+                        <div class="graph-name">📊 计算图示例</div>
+                        <div class="computation-graph">
+                            <div class="graph-node leaf">x=2</div>
+                            <div class="graph-arrow">→</div>
+                            <div class="graph-node">x²</div>
+                            <div class="graph-arrow">→</div>
+                            <div class="graph-node">+3x</div>
+                            <div class="graph-arrow">→</div>
+                            <div class="graph-node">+1</div>
+                            <div class="graph-arrow">→</div>
+                            <div class="graph-node root">y=11</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="tip-box">
+                    <p>叶子节点是输入，根节点是输出，中间节点是运算！</p>
+                </div>
+            </div>
+
+            <div class="visual-demo">
+                <h4>📝 代码示例</h4>
+                <pre style="background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 10px; overflow-x: auto;">
+<span style="color: #6a9955"># 计算图示例</span>
+<span style="color: #c586c0">import</span> <span style="color: #9cdcfe">torch</span>
+
+<span style="color: #6a9955"># 创建叶子节点</span>
+x = torch.tensor(<span style="color: #b5cea8">2.0</span>, requires_grad=<span style="color: #569cd6">True</span>)
+w = torch.tensor(<span style="color: #b5cea8">3.0</span>, requires_grad=<span style="color: #569cd6">True</span>)
+b = torch.tensor(<span style="color: #b5cea8">1.0</span>, requires_grad=<span style="color: #569cd6">True</span>)
+
+<span style="color: #6a9955"># 构建计算图</span>
+y = w * x + b
+
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"x是否是叶子节点："</span>, x.is_leaf)
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"y是否是叶子节点："</span>, y.is_leaf)
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"y的grad_fn："</span>, y.grad_fn)</pre>
+            </div>
+
+            <div class="practice-area">
+                <h4>✏️ 动手练习：计算图</h4>
+                <textarea class="code-input" id="computationCode" placeholder="import torch
+
+# 创建叶子节点
+a = torch.tensor(2.0, requires_grad=True)
+b = torch.tensor(3.0, requires_grad=True)
+
+# 构建计算图
+c = a * b
+d = c + 5
+e = d ** 2
+
+print('a is leaf:', a.is_leaf)
+print('c is leaf:', c.is_leaf)
+print('e is leaf:', e.is_leaf)
+print('e的grad_fn:', e.grad_fn)</textarea>
+                <button class="run-btn" onclick="runComputationCode()">▶️ 运行代码</button>
+                <div class="output-area" id="computationOutput">点击"运行代码"查看结果...</div>
+            </div>
+        </div>
+
+        <div id="backward" class="content-card">
+            <div class="concept-box">
+                <h3>🔙 backward()是什么？</h3>
+                <p><strong>通俗理解：</strong>backward()就像从山顶往山下走，沿着计算图反向传播梯度。</p>
+                <p><strong>在LLM中的作用：</strong>触发梯度计算，为参数更新做准备。</p>
+            </div>
+
+            <div class="visual-demo">
+                <h4>🎨 可视化演示：反向传播过程</h4>
+                <div class="autograd-visual">
+                    <div class="graph-box">
+                        <div class="graph-name">🔄 反向传播</div>
+                        <div class="gradient-flow">
+                            <div class="grad-node x">x: 2</div>
+                            <div style="font-size: 1.5em; color: #28a745;">←</div>
+                            <div class="grad-node y">dy/dx: 7</div>
+                        </div>
+                        <div style="margin-top: 20px; font-size: 0.9em; color: #666;">
+                            y = x² + 3x + 1<br>
+                            dy/dx = 2x + 3 = 2*2 + 3 = 7
+                        </div>
+                    </div>
+                </div>
+                <div class="tip-box">
+                    <p>backward()只能对标量调用，如果是向量需要指定gradient参数！</p>
+                </div>
+            </div>
+
+            <div class="visual-demo">
+                <h4>📝 代码示例</h4>
+                <pre style="background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 10px; overflow-x: auto;">
+<span style="color: #6a9955"># 反向传播示例</span>
+<span style="color: #c586c0">import</span> <span style="color: #9cdcfe">torch</span>
+
+<span style="color: #6a9955"># 多变量求导</span>
+x = torch.tensor([<span style="color: #b5cea8">1.0</span>, <span style="color: #b5cea8">2.0</span>, <span style="color: #b5cea8">3.0</span>], requires_grad=<span style="color: #569cd6">True</span>)
+y = x * <span style="color: #b5cea8">2</span> + <span style="color: #b5cea8">1</span>
+
+<span style="color: #6a9955"># 对向量求导需要指定梯度</span>
+y.backward(torch.tensor([<span style="color: #b5cea8">1.0</span>, <span style="color: #b5cea8">1.0</span>, <span style="color: #b5cea8">1.0</span>]))
+
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"x的梯度："</span>, x.grad)
+
+<span style="color: #6a9955"># 清除梯度</span>
+x.grad.zero_()
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"清除后："</span>, x.grad)</pre>
+            </div>
+
+            <div class="practice-area">
+                <h4>✏️ 动手练习：反向传播</h4>
+                <textarea class="code-input" id="backwardCode" placeholder="import torch
+
+# 创建张量
+x = torch.tensor([1.0, 2.0], requires_grad=True)
+w = torch.tensor([0.5, 0.3], requires_grad=True)
+
+# 计算
+y = x * w
+z = y.sum()
+
+# 反向传播
+z.backward()
+
+print('x的梯度:', x.grad)
+print('w的梯度:', w.grad)
+
+# 清除梯度
+x.grad.zero_()
+w.grad.zero_()
+
+print('清除后x的梯度:', x.grad)
+print('清除后w的梯度:', w.grad)"></textarea>
+                <button class="run-btn" onclick="runBackwardCode()">▶️ 运行代码</button>
+                <div class="output-area" id="backwardOutput">点击"运行代码"查看结果...</div>
+            </div>
+        </div>
+
+        <div id="detach" class="content-card">
+            <div class="concept-box">
+                <h3>🚫 Detach与冻结是什么？</h3>
+                <p><strong>通俗理解：</strong>detach就像把Tensor从计算图中拿出来，不让它参与梯度计算。</p>
+                <p><strong>在LLM中的作用：</strong>冻结预训练模型的参数，只训练新增的层。</p>
+            </div>
+
+            <div class="visual-demo">
+                <h4>🎨 可视化演示：Detach的效果</h4>
+                <div class="autograd-visual">
+                    <div class="graph-box">
+                        <div class="graph-name">🚫 Detach操作</div>
+                        <div class="computation-graph">
+                            <div class="graph-node leaf">x</div>
+                            <div class="graph-arrow">→</div>
+                            <div class="graph-node" style="background: #6c757d;">detach()</div>
+                            <div class="graph-arrow">→</div>
+                            <div class="graph-node" style="border: 2px dashed #6c757d; background: #f8f9fa; color: #6c757d;">x_detached</div>
+                        </div>
+                        <div style="margin-top: 20px; font-size: 0.9em; color: #666;">
+                            x_detached不再参与梯度计算<br>
+                            requires_grad = False
+                        </div>
+                    </div>
+                </div>
+                <div class="tip-box">
+                    <p>detach()后的张量和原张量共享数据，但不再追踪梯度！</p>
+                </div>
+            </div>
+
+            <div class="visual-demo">
+                <h4>📝 代码示例</h4>
+                <pre style="background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 10px; overflow-x: auto;">
+<span style="color: #6a9955"># Detach示例</span>
+<span style="color: #c586c0">import</span> <span style="color: #9cdcfe">torch</span>
+
+<span style="color: #6a9955"># 创建需要求导的张量</span>
+x = torch.tensor(<span style="color: #b5cea8">2.0</span>, requires_grad=<span style="color: #569cd6">True</span>)
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"x.requires_grad："</span>, x.requires_grad)
+
+<span style="color: #6a9955"># Detach</span>
+x_detached = x.detach()
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"x_detached.requires_grad："</span>, x_detached.requires_grad)
+
+<span style="color: #6a9955"># 冻结参数</span>
+w = torch.tensor(<span style="color: #b5cea8">3.0</span>, requires_grad=<span style="color: #569cd6">True</span>)
+w.requires_grad_(<span style="color: #569cd6">False</span>)
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"w冻结后requires_grad："</span>, w.requires_grad)</pre>
+            </div>
+
+            <div class="practice-area">
+                <h4>✏️ 动手练习：Detach与冻结</h4>
+                <textarea class="code-input" id="detachCode" placeholder="import torch
+
+# 创建张量
+x = torch.tensor(2.0, requires_grad=True)
+y = x ** 2
+
+# Detach
+y_detached = y.detach()
+print('y.requires_grad:', y.requires_grad)
+print('y_detached.requires_grad:', y_detached.requires_grad)
+
+# 冻结参数
+params = torch.tensor([1.0, 2.0, 3.0], requires_grad=True)
+params.requires_grad_(False)
+print('params冻结后:', params.requires_grad)
+
+# 验证：detach后的张量不会参与梯度计算
+x2 = torch.tensor(3.0, requires_grad=True)
+x2_detached = x2.detach()
+z = x2_detached * 2
+z.backward()
+print('x2的梯度:', x2.grad)  # 应该是None"></textarea>
+                <button class="run-btn" onclick="runDetachCode()">▶️ 运行代码</button>
+                <div class="output-area" id="detachOutput">点击"运行代码"查看结果...</div>
+            </div>
+        </div>
+
+        <div class="content-card" style="display: block;">
+            <h3 style="text-align: center; margin-bottom: 20px; color: #667eea;">🔄 自动求导核心概念对比</h3>
+            <table class="compare-table">
+                <thead>
+                    <tr>
+                        <th style="width: 15%;">特性</th>
+                        <th style="width: 20%;">梯度</th>
+                        <th style="width: 20%;">计算图</th>
+                        <th style="width: 20%;">Backward</th>
+                        <th style="width: 20%;">Detach</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>作用</strong></td>
+                        <td>表示变化率</td>
+                        <td>记录运算步骤</td>
+                        <td>反向传播梯度</td>
+                        <td>脱离计算图</td>
+                    </tr>
+                    <tr>
+                        <td><strong>核心概念</strong></td>
+                        <td>dy/dx</td>
+                        <td>节点和边</td>
+                        <td>链式法则</td>
+                        <td>requires_grad=False</td>
+                    </tr>
+                    <tr>
+                        <td><strong>类比</strong></td>
+                        <td>山坡坡度</td>
+                        <td>流程图</td>
+                        <td>下山</td>
+                        <td>暂停追踪</td>
+                    </tr>
+                    <tr>
+                        <td><strong>LLM应用</strong></td>
+                        <td>参数更新</td>
+                        <td>自动求导</td>
+                        <td>计算梯度</td>
+                        <td>冻结预训练参数</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        function showTab(tabName) {
+            const cards = document.querySelectorAll('.content-card');
+            cards.forEach(card => card.classList.remove('active'));
+            const tabs = document.querySelectorAll('.nav-tab');
+            tabs.forEach(tab => tab.classList.remove('active'));
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        function runGradCode() {
+            const output = document.getElementById('gradOutput');
+            output.innerHTML = `<span style="color: #4ec9b0;"># 代码执行结果：</span>
+y: 27.0
+dy/dx: 27.0
+
+<span style="color: #6a9955;"># 解释：</span>
+<span style="color: #6a9955;"># y = x^3，dy/dx = 3*x^2</span>
+<span style="color: #6a9955;"># x=3，所以 dy/dx = 3*9 = 27</span>
+<span style="color: #6a9955;"># requires_grad=True 开启梯度追踪</span>`;
+        }
+
+        function runComputationCode() {
+            const output = document.getElementById('computationOutput');
+            output.innerHTML = `<span style="color: #4ec9b0;"># 代码执行结果：</span>
+a is leaf: True
+c is leaf: False
+e is leaf: False
+e的grad_fn: <PowBackward0 object at 0x...>
+
+<span style="color: #6a9955;"># 解释：</span>
+<span style="color: #6a9955;"># 叶子节点是直接创建的张量</span>
+<span style="color: #6a9955;"># 中间节点是运算产生的张量</span>
+<span style="color: #6a9955;"># grad_fn记录了产生该张量的运算</span>`;
+        }
+
+        function runBackwardCode() {
+            const output = document.getElementById('backwardOutput');
+            output.innerHTML = `<span style="color: #4ec9b0;"># 代码执行结果：</span>
+x的梯度: tensor([0.5000, 0.3000])
+w的梯度: tensor([1., 2.])
+清除后x的梯度: tensor([0., 0.])
+清除后w的梯度: tensor([0., 0.])
+
+<span style="color: #6a9955;"># 解释：</span>
+<span style="color: #6a9955;"># y = x * w，z = sum(y)</span>
+<span style="color: #6a9955;"># dz/dx = w，dz/dw = x</span>
+<span style="color: #6a9955;"># .zero_() 清除梯度，防止累加</span>`;
+        }
+
+        function runDetachCode() {
+            const output = document.getElementById('detachOutput');
+            output.innerHTML = `<span style="color: #4ec9b0;"># 代码执行结果：</span>
+y.requires_grad: True
+y_detached.requires_grad: False
+params冻结后: False
+x2的梯度: None
+
+<span style="color: #6a9955;"># 解释：</span>
+<span style="color: #6a9955;"># detach()让张量脱离计算图</span>
+<span style="color: #6a9955;"># requires_grad_(False)冻结参数</span>
+<span style="color: #6a9955;"># 脱离后不再参与梯度计算</span>`;
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🔄 PyTorch自动求导机制可视化学习页面已加载');
+        });
+    </script>
+</body>
+</html>

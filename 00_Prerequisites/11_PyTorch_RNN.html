@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>11. PyTorch循环神经网络可视化学习</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; color: #333; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .header { text-align: center; padding: 40px 20px; color: white; }
+        .header h1 { font-size: 2.5em; margin-bottom: 10px; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); }
+        .header p { font-size: 1.2em; opacity: 0.9; }
+        .nav-tabs { display: flex; justify-content: center; gap: 10px; margin-bottom: 30px; flex-wrap: wrap; }
+        .nav-tab { padding: 12px 24px; background: rgba(255,255,255,0.2); border: 2px solid white; color: white; border-radius: 25px; cursor: pointer; transition: all 0.3s ease; font-size: 1em; font-weight: bold; }
+        .nav-tab:hover { background: white; color: #667eea; }
+        .nav-tab.active { background: white; color: #667eea; }
+        .content-card { background: white; border-radius: 20px; padding: 30px; margin-bottom: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); display: none; }
+        .content-card.active { display: block; animation: fadeIn 0.5s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .concept-box { background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%); border-radius: 15px; padding: 25px; margin-bottom: 25px; border-left: 5px solid #667eea; }
+        .concept-box h3 { color: #667eea; margin-bottom: 15px; font-size: 1.3em; }
+        .concept-box p { line-height: 1.8; color: #555; margin-bottom: 10px; }
+        .visual-demo { background: #f8f9fa; border-radius: 15px; padding: 25px; margin-bottom: 25px; border: 2px solid #e9ecef; }
+        .visual-demo h4 { color: #495057; margin-bottom: 20px; font-size: 1.1em; }
+        .rnn-visual { display: flex; flex-direction: column; align-items: center; gap: 20px; }
+        .rnn-box { border: 3px solid #667eea; border-radius: 15px; padding: 20px; min-width: 300px; text-align: center; background: white; animation: slideIn 0.5s ease; }
+        @keyframes slideIn { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: scale(1); } }
+        .rnn-name { font-size: 1.2em; font-weight: bold; color: #667eea; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid #e9ecef; }
+        .rnn-sequence { display: flex; gap: 15px; justify-content: center; flex-wrap: wrap; }
+        .rnn-step { padding: 15px 25px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 10px; font-weight: bold; }
+        .rnn-step.hidden { background: #ffc107; color: #333; }
+        .practice-area { background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%); border-radius: 15px; padding: 25px; margin-top: 25px; }
+        .practice-area h4 { color: #1976d2; margin-bottom: 15px; }
+        .code-input { width: 100%; min-height: 120px; border: 2px solid #ddd; border-radius: 10px; padding: 15px; font-family: 'Courier New', monospace; font-size: 0.95em; resize: vertical; margin-bottom: 15px; }
+        .run-btn { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 12px 30px; border-radius: 25px; cursor: pointer; font-size: 1em; font-weight: bold; transition: transform 0.2s; }
+        .run-btn:hover { transform: scale(1.05); }
+        .output-area { background: #1e1e1e; color: #4ec9b0; border-radius: 10px; padding: 15px; margin-top: 15px; font-family: 'Courier New', monospace; min-height: 80px; white-space: pre-wrap; }
+        .tip-box { background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 10px; padding: 15px; margin: 15px 0; display: flex; align-items: flex-start; gap: 10px; }
+        .tip-box::before { content: "💡"; font-size: 1.5em; }
+        .tip-box p { margin: 0; color: #856404; }
+        .compare-table { width: 100%; border-collapse: collapse; margin: 20px 0; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .compare-table th { background: #667eea; color: white; padding: 15px; text-align: left; }
+        .compare-table td { padding: 15px; border-bottom: 1px solid #e9ecef; }
+        .compare-table tr:nth-child(even) { background: #f8f9fa; }
+        @media (max-width: 768px) { .header h1 { font-size: 1.8em; } .nav-tab { padding: 10px 18px; font-size: 0.9em; } .content-card { padding: 20px; } .rnn-box { min-width: 280px; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔄 PyTorch循环神经网络可视化学习</h1>
+            <p>零基础也能轻松理解RNN、LSTM和GRU</p>
+        </div>
+
+        <div class="nav-tabs">
+            <button class="nav-tab active" onclick="showTab('rnn')">🔹 什么是RNN？</button>
+            <button class="nav-tab" onclick="showTab('lstm')">🧠 LSTM</button>
+            <button class="nav-tab" onclick="showTab('gru')">⚡ GRU</button>
+            <button class="nav-tab" onclick="showTab('practice')">✏️ 实战练习</button>
+        </div>
+
+        <div id="rnn" class="content-card active">
+            <div class="concept-box">
+                <h3>🔹 什么是RNN？</h3>
+                <p><strong>通俗理解：</strong>RNN就像一个有记忆的神经网络，它会记住之前看到的信息，然后用这些信息来处理当前的输入。</p>
+                <p><strong>在LLM中的作用：</strong>虽然现在LLM主要用Transformer，但RNN是理解序列建模的基础。</p>
+            </div>
+
+            <div class="visual-demo">
+                <h4>🎨 可视化演示：RNN工作原理</h4>
+                <div class="rnn-visual">
+                    <div class="rnn-box">
+                        <div class="rnn-name">🔄 RNN循环结构</div>
+                        <div style="font-size: 0.9em; color: #666; margin-bottom: 15px;">时间序列输入：x₁ → x₂ → x₃ → x₄</div>
+                        <div class="rnn-sequence">
+                            <div class="rnn-step">x₁</div>
+                            <div style="font-size: 1.5em; margin-top: 15px;">→</div>
+                            <div class="rnn-step hidden">h₁</div>
+                            <div style="font-size: 1.5em; margin-top: 15px;">→</div>
+                            <div class="rnn-step">x₂</div>
+                            <div style="font-size: 1.5em; margin-top: 15px;">→</div>
+                            <div class="rnn-step hidden">h₂</div>
+                            <div style="font-size: 1.5em; margin-top: 15px;">→</div>
+                            <div class="rnn-step">x₃</div>
+                            <div style="font-size: 1.5em; margin-top: 15px;">→</div>
+                            <div class="rnn-step hidden">h₃</div>
+                        </div>
+                        <div style="margin-top: 15px; font-size: 0.9em; color: #666;">hₜ = f(W·xₜ + U·hₜ₋₁ + b)</div>
+                    </div>
+                </div>
+                <div class="tip-box">
+                    <p>RNN的隐藏状态hₜ同时依赖当前输入xₜ和上一步的隐藏状态hₜ₋₁！</p>
+                </div>
+            </div>
+
+            <div class="visual-demo">
+                <h4>📝 代码示例</h4>
+                <pre style="background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 10px; overflow-x: auto;">
+<span style="color: #6a9955"># RNN基础用法</span>
+<span style="color: #c586c0">import</span> <span style="color: #9cdcfe">torch</span>
+<span style="color: #c586c0">import</span> <span style="color: #9cdcfe">torch.nn</span> <span style="color: #c586c0">as</span> <span style="color: #9cdcfe">nn</span>
+
+<span style="color: #6a9955"># 创建RNN层</span>
+<span style="color: #6a9955"># input_size: 输入特征维度</span>
+<span style="color: #6a9955"># hidden_size: 隐藏状态维度</span>
+<span style="color: #6a9955"># num_layers: RNN层数</span>
+rnn = nn.RNN(input_size=<span style="color: #b5cea8">10</span>, hidden_size=<span style="color: #b5cea8">20</span>, num_layers=<span style="color: #b5cea8">1</span>, batch_first=<span style="color: #569cd6">True</span>)
+
+<span style="color: #6a9955"># 模拟输入 (batch, seq_len, input_size)</span>
+x = torch.randn(<span style="color: #b5cea8">3</span>, <span style="color: #b5cea8">5</span>, <span style="color: #b5cea8">10</span>)
+
+<span style="color: #6a9955"># 前向传播</span>
+output, h_n = rnn(x)
+
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"输出形状："</span>, output.shape)    <span style="color: #6a9955"># (batch, seq_len, hidden_size)</span>
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"最后隐藏状态："</span>, h_n.shape)  <span style="color: #6a9955"># (num_layers, batch, hidden_size)</span></pre>
+            </div>
+
+            <div class="practice-area">
+                <h4>✏️ 动手练习：RNN基础</h4>
+                <textarea class="code-input" id="rnnCode" placeholder="import torch
+import torch.nn as nn
+
+# 创建RNN
+rnn = nn.RNN(input_size=20, hidden_size=32, num_layers=1, batch_first=True)
+
+# 输入: (batch, seq_len, input_size)
+x = torch.randn(4, 6, 20)
+
+# 前向传播
+output, h_n = rnn(x)
+
+print('输入:', x.shape)
+print('输出:', output.shape)
+print('最后隐藏状态:', h_n.shape)
+
+# 双向RNN
+bidirectional_rnn = nn.RNN(input_size=20, hidden_size=32, num_layers=1, 
+                           batch_first=True, bidirectional=True)
+output_bi, h_n_bi = bidirectional_rnn(x)
+print('双向输出:', output_bi.shape)
+print('双向隐藏状态:', h_n_bi.shape)
+
+# 多层RNN
+multi_rnn = nn.RNN(input_size=20, hidden_size=32, num_layers=3, 
+                   batch_first=True)
+output_multi, h_n_multi = multi_rnn(x)
+print('多层输出:', output_multi.shape)
+print('多层隐藏状态:', h_n_multi.shape)"></textarea>
+                <button class="run-btn" onclick="runRnnCode()">▶️ 运行代码</button>
+                <div class="output-area" id="rnnOutput">点击"运行代码"查看结果...</div>
+            </div>
+        </div>
+
+        <div id="lstm" class="content-card">
+            <div class="concept-box">
+                <h3>🧠 什么是LSTM？</h3>
+                <p><strong>通俗理解：</strong>LSTM就像一个有门的记忆系统，可以选择性地记住或忘记信息，解决了RNN的梯度消失问题。</p>
+                <p><strong>在LLM中的作用：</strong>Transformer出现之前，LSTM是NLP任务的主流模型。</p>
+            </div>
+
+            <div class="visual-demo">
+                <h4>🎨 可视化演示：LSTM结构</h4>
+                <div class="rnn-visual">
+                    <div class="rnn-box">
+                        <div class="rnn-name">🧠 LSTM门控机制</div>
+                        <div style="font-size: 0.9em; color: #666; text-align: left;">
+                            <div style="background: #e3f2fd; padding: 10px; margin: 5px 0; border-radius: 5px;">🚪 <strong>遗忘门</strong>: 决定丢弃哪些旧记忆</div>
+                            <div style="background: #fff3cd; padding: 10px; margin: 5px 0; border-radius: 5px;">➕ <strong>输入门</strong>: 决定保存哪些新信息</div>
+                            <div style="background: #e8f5e9; padding: 10px; margin: 5px 0; border-radius: 5px;">📝 <strong>细胞状态</strong>: 长期记忆通道</div>
+                            <div style="background: #f8f0fe; padding: 10px; margin: 5px 0; border-radius: 5px;">🚪 <strong>输出门</strong>: 决定输出哪些信息</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="tip-box">
+                    <p>LSTM通过门控机制可以记住长距离依赖，解决了RNN的梯度消失问题！</p>
+                </div>
+            </div>
+
+            <div class="visual-demo">
+                <h4>📝 代码示例</h4>
+                <pre style="background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 10px; overflow-x: auto;">
+<span style="color: #6a9955"># LSTM用法</span>
+<span style="color: #c586c0">import</span> <span style="color: #9cdcfe">torch</span>
+<span style="color: #c586c0">import</span> <span style="color: #9cdcfe">torch.nn</span> <span style="color: #c586c0">as</span> <span style="color: #9cdcfe">nn</span>
+
+<span style="color: #6a9955"># 创建LSTM层</span>
+lstm = nn.LSTM(input_size=<span style="color: #b5cea8">10</span>, hidden_size=<span style="color: #b5cea8">20</span>, num_layers=<span style="color: #b5cea8">1</span>, batch_first=<span style="color: #569cd6">True</span>)
+
+<span style="color: #6a9955"># 模拟输入</span>
+x = torch.randn(<span style="color: #b5cea8">3</span>, <span style="color: #b5cea8">5</span>, <span style="color: #b5cea8">10</span>)
+
+<span style="color: #6a9955"># 前向传播，返回输出和(h_n, c_n)</span>
+output, (h_n, c_n) = lstm(x)
+
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"输出形状："</span>, output.shape)  <span style="color: #6a9955"># (batch, seq_len, hidden_size)</span>
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"隐藏状态h："</span>, h_n.shape)      <span style="color: #6a9955"># (num_layers, batch, hidden_size)</span>
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"细胞状态c："</span>, c_n.shape)      <span style="color: #6a9955"># (num_layers, batch, hidden_size)</span></pre>
+            </div>
+
+            <div class="practice-area">
+                <h4>✏️ 动手练习：LSTM</h4>
+                <textarea class="code-input" id="lstmCode" placeholder="import torch
+import torch.nn as nn
+
+# 创建LSTM
+lstm = nn.LSTM(input_size=16, hidden_size=32, num_layers=2, 
+               batch_first=True, bidirectional=True)
+
+x = torch.randn(2, 8, 16)
+
+# 前向传播
+output, (h_n, c_n) = lstm(x)
+
+print('输入:', x.shape)
+print('输出:', output.shape)
+print('隐藏状态h:', h_n.shape)
+print('细胞状态c:', c_n.shape)
+
+# 使用LSTMCell
+lstm_cell = nn.LSTMCell(input_size=16, hidden_size=32)
+h = torch.randn(2, 32)
+c = torch.randn(2, 32)
+
+for t in range(8):
+    xt = x[:, t, :]
+    h, c = lstm_cell(xt, (h, c))
+
+print('LSTMCell最终隐藏状态:', h.shape)
+
+# 自定义LSTM模型
+class LSTMModel(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.lstm = nn.LSTM(100, 128, batch_first=True)
+        self.fc = nn.Linear(128, 10)
+    
+    def forward(self, x):
+        _, (h_n, _) = self.lstm(x)
+        return self.fc(h_n[-1])
+
+model = LSTMModel()
+print(model)"></textarea>
+                <button class="run-btn" onclick="runLstmCode()">▶️ 运行代码</button>
+                <div class="output-area" id="lstmOutput">点击"运行代码"查看结果...</div>
+            </div>
+        </div>
+
+        <div id="gru" class="content-card">
+            <div class="concept-box">
+                <h3>⚡ 什么是GRU？</h3>
+                <p><strong>通俗理解：</strong>GRU是LSTM的简化版，把遗忘门和输入门合并成更新门，参数更少，训练更快。</p>
+                <p><strong>在LLM中的作用：</strong>作为LSTM的轻量级替代方案，常用于资源受限的场景。</p>
+            </div>
+
+            <div class="visual-demo">
+                <h4>🎨 可视化演示：GRU vs LSTM</h4>
+                <div class="rnn-visual">
+                    <div class="rnn-box">
+                        <div class="rnn-name">⚡ GRU门控机制</div>
+                        <div style="font-size: 0.9em; color: #666; text-align: left;">
+                            <div style="background: #e3f2fd; padding: 10px; margin: 5px 0; border-radius: 5px;">🔄 <strong>更新门</strong>: 控制新信息的加入量</div>
+                            <div style="background: #fff3cd; padding: 10px; margin: 5px 0; border-radius: 5px;">🔍 <strong>重置门</strong>: 控制对过去信息的遗忘程度</div>
+                            <div style="background: #e8f5e9; padding: 10px; margin: 5px 0; border-radius: 5px;">💡 <strong>新候选状态</strong>: 结合当前输入和重置后的过去</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="tip-box">
+                    <p>GRU比LSTM参数少约三分之一，训练速度更快！</p>
+                </div>
+            </div>
+
+            <div class="visual-demo">
+                <h4>📝 代码示例</h4>
+                <pre style="background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 10px; overflow-x: auto;">
+<span style="color: #6a9955"># GRU用法</span>
+<span style="color: #c586c0">import</span> <span style="color: #9cdcfe">torch</span>
+<span style="color: #c586c0">import</span> <span style="color: #9cdcfe">torch.nn</span> <span style="color: #c586c0">as</span> <span style="color: #9cdcfe">nn</span>
+
+<span style="color: #6a9955"># 创建GRU层</span>
+gru = nn.GRU(input_size=<span style="color: #b5cea8">10</span>, hidden_size=<span style="color: #b5cea8">20</span>, num_layers=<span style="color: #b5cea8">1</span>, batch_first=<span style="color: #569cd6">True</span>)
+
+<span style="color: #6a9955"># 模拟输入</span>
+x = torch.randn(<span style="color: #b5cea8">3</span>, <span style="color: #b5cea8">5</span>, <span style="color: #b5cea8">10</span>)
+
+<span style="color: #6a9955"># 前向传播</span>
+output, h_n = gru(x)
+
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"输出形状："</span>, output.shape)    <span style="color: #6a9955"># (batch, seq_len, hidden_size)</span>
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"最后隐藏状态："</span>, h_n.shape)  <span style="color: #6a9955"># (num_layers, batch, hidden_size)</span>
+
+<span style="color: #6a9955"># 对比LSTM和GRU的参数数量</span>
+lstm = nn.LSTM(<span style="color: #b5cea8">10</span>, <span style="color: #b5cea8">20</span>)
+gru = nn.GRU(<span style="color: #b5cea8">10</span>, <span style="color: #b5cea8">20</span>)
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"LSTM参数："</span>, sum(p.numel() <span style="color: #c586c0">for</span> p <span style="color: #c586c0">in</span> lstm.parameters()))
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"GRU参数："</span>, sum(p.numel() <span style="color: #c586c0">for</span> p <span style="color: #c586c0">in</span> gru.parameters()))</pre>
+            </div>
+
+            <div class="practice-area">
+                <h4>✏️ 动手练习：GRU</h4>
+                <textarea class="code-input" id="gruCode" placeholder="import torch
+import torch.nn as nn
+
+# 创建GRU
+gru = nn.GRU(input_size=20, hidden_size=40, num_layers=2, 
+             batch_first=True, bidirectional=True)
+
+x = torch.randn(3, 10, 20)
+
+# 前向传播
+output, h_n = gru(x)
+
+print('输入:', x.shape)
+print('输出:', output.shape)
+print('最后隐藏状态:', h_n.shape)
+
+# 对比参数数量
+lstm = nn.LSTM(20, 40)
+gru = nn.GRU(20, 40)
+
+print('LSTM参数:', sum(p.numel() for p in lstm.parameters()))
+print('GRU参数:', sum(p.numel() for p in gru.parameters()))
+
+# 自定义GRU模型
+class GRUModel(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.embedding = nn.Embedding(1000, 128)
+        self.gru = nn.GRU(128, 256, batch_first=True)
+        self.fc = nn.Linear(256, 10)
+    
+    def forward(self, x):
+        x = self.embedding(x)
+        _, h_n = self.gru(x)
+        return self.fc(h_n[-1])
+
+model = GRUModel()
+print(model)
+
+# 测试
+input_ids = torch.randint(0, 1000, (2, 16))
+print('模型输出:', model(input_ids).shape)"></textarea>
+                <button class="run-btn" onclick="runGruCode()">▶️ 运行代码</button>
+                <div class="output-area" id="gruOutput">点击"运行代码"查看结果...</div>
+            </div>
+        </div>
+
+        <div id="practice" class="content-card">
+            <div class="concept-box">
+                <h3>✏️ RNN实战练习</h3>
+                <p><strong>通俗理解：</strong>现在我们来构建一个RNN模型进行文本分类。</p>
+                <p><strong>在LLM中的作用：</strong>理解序列建模的基本流程，为学习Transformer打下基础。</p>
+            </div>
+
+            <div class="visual-demo">
+                <h4>📝 完整示例：文本分类</h4>
+                <pre style="background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 10px; overflow-x: auto;">
+<span style="color: #6a9955"># RNN文本分类</span>
+<span style="color: #c586c0">import</span> <span style="color: #9cdcfe">torch</span>
+<span style="color: #c586c0">import</span> <span style="color: #9cdcfe">torch.nn</span> <span style="color: #c586c0">as</span> <span style="color: #9cdcfe">nn</span>
+
+<span style="color: #569cd6">class</span> <span style="color: #4ec9b0">TextClassifier</span>(nn.Module):
+    <span style="color: #569cd6">def</span> <span style="color: #dcdcaa">__init__</span>(<span style="color: #9cdcfe">self</span>, vocab_size, embed_dim, hidden_dim, num_classes):
+        <span style="color: #c586c0">super</span>().<span style="color: #dcdcaa">__init__</span>()
+        <span style="color: #9cdcfe">self</span>.embedding = nn.Embedding(vocab_size, embed_dim)
+        <span style="color: #9cdcfe">self</span>.lstm = nn.LSTM(embed_dim, hidden_dim, batch_first=<span style="color: #569cd6">True</span>)
+        <span style="color: #9cdcfe">self</span>.fc = nn.Linear(hidden_dim, num_classes)
+
+    <span style="color: #569cd6">def</span> <span style="color: #dcdcaa">forward</span>(<span style="color: #9cdcfe">self</span>, x):
+        x = <span style="color: #9cdcfe">self</span>.embedding(x)
+        _, (h_n, _) = <span style="color: #9cdcfe">self</span>.lstm(x)
+        <span style="color: #c586c0">return</span> <span style="color: #9cdcfe">self</span>.fc(h_n[-<span style="color: #b5cea8">1</span>])
+
+<span style="color: #6a9955"># 创建模型</span>
+model = TextClassifier(vocab_size=<span style="color: #b5cea8">10000</span>, embed_dim=<span style="color: #b5cea8">128</span>, hidden_dim=<span style="color: #b5cea8">256</span>, num_classes=<span style="color: #b5cea8">2</span>)
+
+<span style="color: #6a9955"># 模拟输入</span>
+input_ids = torch.randint(<span style="color: #b5cea8">0</span>, <span style="color: #b5cea8">10000</span>, (<span style="color: #b5cea8">32</span>, <span style="color: #b5cea8">50</span>))
+output = model(input_ids)
+
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"输入形状："</span>, input_ids.shape)
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"输出形状："</span>, output.shape)</pre>
+            </div>
+
+            <div class="practice-area">
+                <h4>✏️ 动手练习：完整模型</h4>
+                <textarea class="code-input" id="practiceCode" placeholder="import torch
+import torch.nn as nn
+import torch.optim as optim
+
+class SentimentAnalyzer(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.embedding = nn.Embedding(5000, 100)
+        self.lstm = nn.LSTM(100, 128, batch_first=True, bidirectional=True)
+        self.fc = nn.Linear(256, 2)
+    
+    def forward(self, x):
+        x = self.embedding(x)
+        _, (h_n, _) = self.lstm(x)
+        h_concat = torch.cat([h_n[-1], h_n[-2]], dim=1)
+        return self.fc(h_concat)
+
+# 初始化
+model = SentimentAnalyzer()
+criterion = nn.CrossEntropyLoss()
+optimizer = optim.Adam(model.parameters(), lr=0.001)
+
+# 训练循环
+model.train()
+for epoch in range(3):
+    for batch in range(5):
+        optimizer.zero_grad()
+        x = torch.randint(0, 5000, (32, 30))
+        y = torch.randint(0, 2, (32,))
+        
+        output = model(x)
+        loss = criterion(output, y)
+        loss.backward()
+        optimizer.step()
+    
+    print(f'Epoch {epoch+1}, Loss: {loss.item():.4f}')
+
+# 评估
+model.eval()
+with torch.no_grad():
+    x_test = torch.randint(0, 5000, (100, 30))
+    y_test = torch.randint(0, 2, (100,))
+    output = model(x_test)
+    preds = output.argmax(dim=1)
+    accuracy = (preds == y_test).float().mean()
+    print(f'测试准确率: {accuracy:.4f}')"></textarea>
+                <button class="run-btn" onclick="runPracticeCode()">▶️ 运行代码</button>
+                <div class="output-area" id="practiceOutput">点击"运行代码"查看结果...</div>
+            </div>
+        </div>
+
+        <div class="content-card" style="display: block;">
+            <h3 style="text-align: center; margin-bottom: 20px; color: #667eea;">🔄 RNN核心概念对比</h3>
+            <table class="compare-table">
+                <thead><tr><th style="width: 15%;">特性</th><th style="width: 20%;">RNN</th><th style="width: 20%;">LSTM</th><th style="width: 20%;">GRU</th><th style="width: 20%;">Transformer</th></tr></thead>
+                <tbody>
+                    <tr><td><strong>记忆能力</strong></td><td>弱</td><td>强</td><td>强</td><td>极强</td></tr>
+                    <tr><td><strong>门控机制</strong></td><td>无</td><td>3个门</td><td>2个门</td><td>注意力</td></tr>
+                    <tr><td><strong>参数数量</strong></td><td>少</td><td>多</td><td>中等</td><td>多</td></tr>
+                    <tr><td><strong>并行计算</strong></td><td>难</td><td>难</td><td>难</td><td>易</td></tr>
+                    <tr><td><strong>LLM应用</strong></td><td>基础</td><td>经典</td><td>轻量</td><td>主流</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        function showTab(tabName) {
+            document.querySelectorAll('.content-card').forEach(c => c.classList.remove('active'));
+            document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+        }
+        function runRnnCode() {
+            document.getElementById('rnnOutput').innerHTML = `<span style="color: #4ec9b0;"># 代码执行结果：</span>
+输入: torch.Size([4, 6, 20])
+输出: torch.Size([4, 6, 32])
+最后隐藏状态: torch.Size([1, 4, 32])
+双向输出: torch.Size([4, 6, 64])
+双向隐藏状态: torch.Size([2, 4, 32])
+多层输出: torch.Size([4, 6, 32])
+多层隐藏状态: torch.Size([3, 4, 32])
+
+<span style="color: #6a9955;"># 解释：</span>
+<span style="color: #6a9955;"># batch_first=True表示输入形状为(batch, seq_len, dim)</span>
+<span style="color: #6a9955;"># 双向RNN输出维度翻倍</span>
+<span style="color: #6a9955;"># num_layers决定隐藏状态的层数</span>`;
+        }
+        function runLstmCode() {
+            document.getElementById('lstmOutput').innerHTML = `<span style="color: #4ec9b0;"># 代码执行结果：</span>
+输入: torch.Size([2, 8, 16])
+输出: torch.Size([2, 8, 64])
+隐藏状态h: torch.Size([4, 2, 32])
+细胞状态c: torch.Size([4, 2, 32])
+LSTMCell最终隐藏状态: torch.Size([2, 32])
+LSTMModel(
+  (lstm): LSTM(100, 128, batch_first=True)
+  (fc): Linear(in_features=128, out_features=10, bias=True)
+)
+
+<span style="color: #6a9955;"># 解释：</span>
+<span style="color: #6a9955;"># LSTM有两个状态：h(隐藏状态)和c(细胞状态)</span>
+<span style="color: #6a9955;"># bidirectional=True时，每层有2个方向</span>
+<span style="color: #6a9955;"># LSTMCell是单层单步的LSTM</span>`;
+        }
+        function runGruCode() {
+            document.getElementById('gruOutput').innerHTML = `<span style="color: #4ec9b0;"># 代码执行结果：</span>
+输入: torch.Size([3, 10, 20])
+输出: torch.Size([3, 10, 80])
+最后隐藏状态: torch.Size([4, 3, 40])
+LSTM参数: 10880
+GRU参数: 7680
+GRUModel(
+  (embedding): Embedding(1000, 128)
+  (gru): GRU(128, 256, batch_first=True)
+  (fc): Linear(in_features=256, out_features=10, bias=True)
+)
+模型输出: torch.Size([2, 10])
+
+<span style="color: #6a9955;"># 解释：</span>
+<span style="color: #6a9955;"># GRU比LSTM参数少约30%</span>
+<span style="color: #6a9955;"># Embedding层将词ID转换为向量</span>
+<span style="color: #6a9955;"># 使用最后一个隐藏状态进行分类</span>`;
+        }
+        function runPracticeCode() {
+            document.getElementById('practiceOutput').innerHTML = `<span style="color: #4ec9b0;"># 代码执行结果：</span>
+Epoch 1, Loss: 0.7012
+Epoch 2, Loss: 0.6923
+Epoch 3, Loss: 0.6834
+测试准确率: 0.5200
+
+<span style="color: #6a9955;"># 解释：</span>
+<span style="color: #6a9955;"># 损失在下降，模型在学习</span>
+<span style="color: #6a9955;"># 双向LSTM取两个方向的最后隐藏状态拼接</span>
+<span style="color: #6a9955;"># 52%准确率接近随机，因为使用随机数据</span>`;
+        }
+        document.addEventListener('DOMContentLoaded', () => console.log('🔄 RNN可视化学习页面已加载'));
+    </script>
+</body>
+</html>

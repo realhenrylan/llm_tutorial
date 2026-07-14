@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>09. PyTorch模型构建基础可视化学习</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; color: #333; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .header { text-align: center; padding: 40px 20px; color: white; }
+        .header h1 { font-size: 2.5em; margin-bottom: 10px; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); }
+        .header p { font-size: 1.2em; opacity: 0.9; }
+        .nav-tabs { display: flex; justify-content: center; gap: 10px; margin-bottom: 30px; flex-wrap: wrap; }
+        .nav-tab { padding: 12px 24px; background: rgba(255,255,255,0.2); border: 2px solid white; color: white; border-radius: 25px; cursor: pointer; transition: all 0.3s ease; font-size: 1em; font-weight: bold; }
+        .nav-tab:hover { background: white; color: #667eea; }
+        .nav-tab.active { background: white; color: #667eea; }
+        .content-card { background: white; border-radius: 20px; padding: 30px; margin-bottom: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); display: none; }
+        .content-card.active { display: block; animation: fadeIn 0.5s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .concept-box { background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%); border-radius: 15px; padding: 25px; margin-bottom: 25px; border-left: 5px solid #667eea; }
+        .concept-box h3 { color: #667eea; margin-bottom: 15px; font-size: 1.3em; }
+        .concept-box p { line-height: 1.8; color: #555; margin-bottom: 10px; }
+        .visual-demo { background: #f8f9fa; border-radius: 15px; padding: 25px; margin-bottom: 25px; border: 2px solid #e9ecef; }
+        .visual-demo h4 { color: #495057; margin-bottom: 20px; font-size: 1.1em; }
+        .model-visual { display: flex; flex-direction: column; align-items: center; gap: 20px; }
+        .model-box { border: 3px solid #667eea; border-radius: 15px; padding: 20px; min-width: 300px; text-align: center; background: white; animation: slideIn 0.5s ease; }
+        @keyframes slideIn { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: scale(1); } }
+        .model-name { font-size: 1.2em; font-weight: bold; color: #667eea; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid #e9ecef; }
+        .layer-box { display: flex; flex-direction: column; gap: 10px; }
+        .layer-item { padding: 12px; border-radius: 10px; font-weight: bold; font-size: 0.95em; }
+        .layer-linear { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        .layer-relu { background: #28a745; color: white; }
+        .layer-conv { background: #1976d2; color: white; }
+        .layer-pool { background: #ffc107; color: #333; }
+        .practice-area { background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%); border-radius: 15px; padding: 25px; margin-top: 25px; }
+        .practice-area h4 { color: #1976d2; margin-bottom: 15px; }
+        .code-input { width: 100%; min-height: 120px; border: 2px solid #ddd; border-radius: 10px; padding: 15px; font-family: 'Courier New', monospace; font-size: 0.95em; resize: vertical; margin-bottom: 15px; }
+        .run-btn { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 12px 30px; border-radius: 25px; cursor: pointer; font-size: 1em; font-weight: bold; transition: transform 0.2s; }
+        .run-btn:hover { transform: scale(1.05); }
+        .output-area { background: #1e1e1e; color: #4ec9b0; border-radius: 10px; padding: 15px; margin-top: 15px; font-family: 'Courier New', monospace; min-height: 80px; white-space: pre-wrap; }
+        .tip-box { background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 10px; padding: 15px; margin: 15px 0; display: flex; align-items: flex-start; gap: 10px; }
+        .tip-box::before { content: "💡"; font-size: 1.5em; }
+        .tip-box p { margin: 0; color: #856404; }
+        .compare-table { width: 100%; border-collapse: collapse; margin: 20px 0; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .compare-table th { background: #667eea; color: white; padding: 15px; text-align: left; }
+        .compare-table td { padding: 15px; border-bottom: 1px solid #e9ecef; }
+        .compare-table tr:nth-child(even) { background: #f8f9fa; }
+        @media (max-width: 768px) { .header h1 { font-size: 1.8em; } .nav-tab { padding: 10px 18px; font-size: 0.9em; } .content-card { padding: 20px; } .model-box { min-width: 280px; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏗️ PyTorch模型构建基础可视化学习</h1>
+            <p>零基础也能轻松理解模型结构、层组合和模块化设计</p>
+        </div>
+
+        <div class="nav-tabs">
+            <button class="nav-tab active" onclick="showTab('struct')">🧩 模型结构</button>
+            <button class="nav-tab" onclick="showTab('layers')">📦 常用层</button>
+            <button class="nav-tab" onclick="showTab('module')">🔗 模块化设计</button>
+            <button class="nav-tab" onclick="showTab('init')">⚙️ 参数初始化</button>
+        </div>
+
+        <div id="struct" class="content-card active">
+            <div class="concept-box">
+                <h3>🧩 什么是模型结构？</h3>
+                <p><strong>通俗理解：</strong>模型结构就像一个流程图，定义了数据从输入到输出要经过哪些处理步骤。</p>
+                <p><strong>在LLM中的作用：</strong>决定了模型的能力和性能，好的结构能让模型更好地学习数据规律。</p>
+            </div>
+
+            <div class="visual-demo">
+                <h4>🎨 可视化演示：模型结构示意图</h4>
+                <div class="model-visual">
+                    <div class="model-box">
+                        <div class="model-name">🏗️ 典型神经网络结构</div>
+                        <div class="layer-box">
+                            <div class="layer-item" style="background: #e3f2fd; color: #1976d2;">📥 Input (batch, 784)</div>
+                            <div class="layer-item layer-linear">Linear(784 → 256)</div>
+                            <div class="layer-item layer-relu">ReLU()</div>
+                            <div class="layer-item layer-linear">Linear(256 → 128)</div>
+                            <div class="layer-item layer-relu">ReLU()</div>
+                            <div class="layer-item layer-linear">Linear(128 → 10)</div>
+                            <div class="layer-item" style="background: #e8f5e9; color: #28a745;">📤 Output (batch, 10)</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="tip-box">
+                    <p>模型就像一个流水线，数据从输入流入，经过层层处理，最后输出结果！</p>
+                </div>
+            </div>
+
+            <div class="visual-demo">
+                <h4>📝 代码示例</h4>
+                <pre style="background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 10px; overflow-x: auto;">
+<span style="color: #6a9955"># 定义简单模型结构</span>
+<span style="color: #c586c0">import</span> <span style="color: #9cdcfe">torch</span>
+<span style="color: #c586c0">import</span> <span style="color: #9cdcfe">torch.nn</span> <span style="color: #c586c0">as</span> <span style="color: #9cdcfe">nn</span>
+
+<span style="color: #569cd6">class</span> <span style="color: #4ec9b0">MLP</span>(nn.Module):
+    <span style="color: #569cd6">def</span> <span style="color: #dcdcaa">__init__</span>(<span style="color: #9cdcfe">self</span>, input_dim, hidden_dim, output_dim):
+        <span style="color: #c586c0">super</span>().<span style="color: #dcdcaa">__init__</span>()
+        <span style="color: #9cdcfe">self</span>.layers = nn.Sequential(
+            nn.Linear(input_dim, hidden_dim),
+            nn.ReLU(),
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.ReLU(),
+            nn.Linear(hidden_dim, output_dim)
+        )
+
+    <span style="color: #569cd6">def</span> <span style="color: #dcdcaa">forward</span>(<span style="color: #9cdcfe">self</span>, x):
+        <span style="color: #c586c0">return</span> <span style="color: #9cdcfe">self</span>.layers(x)
+
+model = MLP(input_dim=<span style="color: #b5cea8">784</span>, hidden_dim=<span style="color: #b5cea8">256</span>, output_dim=<span style="color: #b5cea8">10</span>)
+<span style="color: #dcdcaa">print</span>(model)</pre>
+            </div>
+
+            <div class="practice-area">
+                <h4>✏️ 动手练习：定义模型结构</h4>
+                <textarea class="code-input" id="structCode" placeholder="import torch
+import torch.nn as nn
+
+class SimpleMLP(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.fc1 = nn.Linear(100, 50)
+        self.relu1 = nn.ReLU()
+        self.fc2 = nn.Linear(50, 20)
+        self.relu2 = nn.ReLU()
+        self.fc3 = nn.Linear(20, 5)
+    
+    def forward(self, x):
+        x = self.fc1(x)
+        x = self.relu1(x)
+        x = self.fc2(x)
+        x = self.relu2(x)
+        x = self.fc3(x)
+        return x
+
+model = SimpleMLP()
+print(model)
+
+# 测试前向传播
+input_tensor = torch.randn(32, 100)
+output = model(input_tensor)
+print('输出形状:', output.shape)">import torch
+import torch.nn as nn
+
+class SimpleMLP(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.fc1 = nn.Linear(100, 50)
+        self.relu1 = nn.ReLU()
+        self.fc2 = nn.Linear(50, 20)
+        self.relu2 = nn.ReLU()
+        self.fc3 = nn.Linear(20, 5)
+    
+    def forward(self, x):
+        x = self.fc1(x)
+        x = self.relu1(x)
+        x = self.fc2(x)
+        x = self.relu2(x)
+        x = self.fc3(x)
+        return x
+
+model = SimpleMLP()
+print(model)
+
+input_tensor = torch.randn(32, 100)
+output = model(input_tensor)
+print('输出形状:', output.shape)</textarea>
+                <button class="run-btn" onclick="runStructCode()">▶️ 运行代码</button>
+                <div class="output-area" id="structOutput">点击"运行代码"查看结果...</div>
+            </div>
+        </div>
+
+        <div id="layers" class="content-card">
+            <div class="concept-box">
+                <h3>📦 常用层有哪些？</h3>
+                <p><strong>通俗理解：</strong>常用层就像不同的工具，每种层都有自己的作用，比如线性层做变换，激活函数增加非线性。</p>
+                <p><strong>在LLM中的作用：</strong>构建复杂的神经网络，让模型能够学习复杂的模式。</p>
+            </div>
+
+            <div class="visual-demo">
+                <h4>🎨 可视化演示：常用层对比</h4>
+                <div class="model-visual">
+                    <div class="model-box">
+                        <div class="model-name">📦 常用层介绍</div>
+                        <div class="layer-box">
+                            <div class="layer-item layer-linear">Linear — 线性变换 y = Wx + b</div>
+                            <div class="layer-item layer-relu">ReLU — 非线性激活 max(0, x)</div>
+                            <div class="layer-item layer-conv">Conv2d — 卷积操作</div>
+                            <div class="layer-item layer-pool">MaxPool2d — 池化降采样</div>
+                            <div class="layer-item" style="background: #dc3545; color: white;">Dropout — 正则化随机失活</div>
+                            <div class="layer-item" style="background: #6c757d; color: white;">BatchNorm — 批量归一化</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="tip-box">
+                    <p>Linear层是最基础的层，几乎所有模型都会用到！</p>
+                </div>
+            </div>
+
+            <div class="visual-demo">
+                <h4>📝 代码示例</h4>
+                <pre style="background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 10px; overflow-x: auto;">
+<span style="color: #6a9955"># 常用层示例</span>
+<span style="color: #c586c0">import</span> <span style="color: #9cdcfe">torch</span>
+<span style="color: #c586c0">import</span> <span style="color: #9cdcfe">torch.nn</span> <span style="color: #c586c0">as</span> <span style="color: #9cdcfe">nn</span>
+
+<span style="color: #6a9955"># 线性层</span>
+linear = nn.Linear(<span style="color: #b5cea8">10</span>, <span style="color: #b5cea8">5</span>)
+x = torch.randn(<span style="color: #b5cea8">3</span>, <span style="color: #b5cea8">10</span>)
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"Linear输出："</span>, linear(x).shape)
+
+<span style="color: #6a9955"># 卷积层</span>
+conv = nn.Conv2d(in_channels=<span style="color: #b5cea8">3</span>, out_channels=<span style="color: #b5cea8">16</span>, kernel_size=<span style="color: #b5cea8">3</span>)
+img = torch.randn(<span style="color: #b5cea8">2</span>, <span style="color: #b5cea8">3</span>, <span style="color: #b5cea8">32</span>, <span style="color: #b5cea8">32</span>)
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"Conv输出："</span>, conv(img).shape)
+
+<span style="color: #6a9955"># 池化层</span>
+pool = nn.MaxPool2d(kernel_size=<span style="color: #b5cea8">2</span>)
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"Pool输出："</span>, pool(conv(img)).shape)
+
+<span style="color: #6a9955"># Dropout</span>
+dropout = nn.Dropout(p=<span style="color: #b5cea8">0.5</span>)
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"Dropout输出："</span>, dropout(x).shape)</pre>
+            </div>
+
+            <div class="practice-area">
+                <h4>✏️ 动手练习：使用常用层</h4>
+                <textarea class="code-input" id="layersCode" placeholder="import torch
+import torch.nn as nn
+
+# 创建各种层
+linear = nn.Linear(20, 10)
+relu = nn.ReLU()
+sigmoid = nn.Sigmoid()
+tanh = nn.Tanh()
+
+x = torch.randn(5, 20)
+
+print('输入:', x.shape)
+print('Linear:', linear(x).shape)
+print('ReLU:', relu(x).shape)
+print('Sigmoid输出范围:', sigmoid(x).min().item(), '-', sigmoid(x).max().item())
+print('Tanh输出范围:', tanh(x).min().item(), '-', tanh(x).max().item())
+
+# 组合层
+model = nn.Sequential(
+    nn.Linear(20, 30),
+    nn.ReLU(),
+    nn.Linear(30, 15),
+    nn.Tanh(),
+    nn.Linear(15, 5)
+)
+print('组合模型输出:', model(x).shape)">import torch
+import torch.nn as nn
+
+linear = nn.Linear(20, 10)
+relu = nn.ReLU()
+sigmoid = nn.Sigmoid()
+tanh = nn.Tanh()
+
+x = torch.randn(5, 20)
+
+print('输入:', x.shape)
+print('Linear:', linear(x).shape)
+print('ReLU:', relu(x).shape)
+print('Sigmoid输出范围:', sigmoid(x).min().item(), '-', sigmoid(x).max().item())
+print('Tanh输出范围:', tanh(x).min().item(), '-', tanh(x).max().item())
+
+model = nn.Sequential(
+    nn.Linear(20, 30),
+    nn.ReLU(),
+    nn.Linear(30, 15),
+    nn.Tanh(),
+    nn.Linear(15, 5)
+)
+print('组合模型输出:', model(x).shape)</textarea>
+                <button class="run-btn" onclick="runLayersCode()">▶️ 运行代码</button>
+                <div class="output-area" id="layersOutput">点击"运行代码"查看结果...</div>
+            </div>
+        </div>
+
+        <div id="module" class="content-card">
+            <div class="concept-box">
+                <h3>🔗 什么是模块化设计？</h3>
+                <p><strong>通俗理解：</strong>模块化设计就像搭积木，把复杂的模型拆分成小模块，每个模块负责一部分功能。</p>
+                <p><strong>在LLM中的作用：</strong>让代码更清晰、更易维护，方便复用和扩展。</p>
+            </div>
+
+            <div class="visual-demo">
+                <h4>🎨 可视化演示：模块化设计</h4>
+                <div class="model-visual">
+                    <div class="model-box">
+                        <div class="model-name">🔗 模块化设计示意图</div>
+                        <div style="font-size: 0.9em; color: #666; text-align: left;">
+                            <div style="background: #e3f2fd; padding: 10px; margin: 5px 0; border-radius: 5px;">• <strong>Encoder模块</strong> — 编码输入信息</div>
+                            <div style="background: #fff3cd; padding: 10px; margin: 5px 0; border-radius: 5px;">• <strong>Decoder模块</strong> — 生成输出</div>
+                            <div style="background: #e8f5e9; padding: 10px; margin: 5px 0; border-radius: 5px;">• <strong>Attention模块</strong> — 关注重要信息</div>
+                            <div style="background: #f8f0fe; padding: 10px; margin: 5px 0; border-radius: 5px;">• <strong>FeedForward模块</strong> — 非线性变换</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="tip-box">
+                    <p>每个模块可以独立测试和优化，就像乐高积木一样！</p>
+                </div>
+            </div>
+
+            <div class="visual-demo">
+                <h4>📝 代码示例</h4>
+                <pre style="background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 10px; overflow-x: auto;">
+<span style="color: #6a9955"># 模块化设计示例</span>
+<span style="color: #c586c0">import</span> <span style="color: #9cdcfe">torch</span>
+<span style="color: #c586c0">import</span> <span style="color: #9cdcfe">torch.nn</span> <span style="color: #c586c0">as</span> <span style="color: #9cdcfe">nn</span>
+
+<span style="color: #569cd6">class</span> <span style="color: #4ec9b0">AttentionBlock</span>(nn.Module):
+    <span style="color: #569cd6">def</span> <span style="color: #dcdcaa">__init__</span>(<span style="color: #9cdcfe">self</span>, dim):
+        <span style="color: #c586c0">super</span>().<span style="color: #dcdcaa">__init__</span>()
+        <span style="color: #9cdcfe">self</span>.query = nn.Linear(dim, dim)
+        <span style="color: #9cdcfe">self</span>.key = nn.Linear(dim, dim)
+        <span style="color: #9cdcfe">self</span>.value = nn.Linear(dim, dim)
+
+    <span style="color: #569cd6">def</span> <span style="color: #dcdcaa">forward</span>(<span style="color: #9cdcfe">self</span>, x):
+        q = <span style="color: #9cdcfe">self</span>.query(x)
+        k = <span style="color: #9cdcfe">self</span>.key(x)
+        v = <span style="color: #9cdcfe">self</span>.value(x)
+        <span style="color: #c586c0">return</span> q + k + v
+
+<span style="color: #569cd6">class</span> <span style="color: #4ec9b0">TransformerLayer</span>(nn.Module):
+    <span style="color: #569cd6">def</span> <span style="color: #dcdcaa">__init__</span>(<span style="color: #9cdcfe">self</span>, dim):
+        <span style="color: #c586c0">super</span>().<span style="color: #dcdcaa">__init__</span>()
+        <span style="color: #9cdcfe">self</span>.attn = AttentionBlock(dim)
+        <span style="color: #9cdcfe">self</span>.ffn = nn.Sequential(
+            nn.Linear(dim, dim * <span style="color: #b5cea8">4</span>),
+            nn.ReLU(),
+            nn.Linear(dim * <span style="color: #b5cea8">4</span>, dim)
+        )
+
+    <span style="color: #569cd6">def</span> <span style="color: #dcdcaa">forward</span>(<span style="color: #9cdcfe">self</span>, x):
+        x = x + <span style="color: #9cdcfe">self</span>.attn(x)
+        x = x + <span style="color: #9cdcfe">self</span>.ffn(x)
+        <span style="color: #c586c0">return</span> x
+
+model = TransformerLayer(dim=<span style="color: #b5cea8">64</span>)
+<span style="color: #dcdcaa">print</span>(model)</pre>
+            </div>
+
+            <div class="practice-area">
+                <h4>✏️ 动手练习：模块化设计</h4>
+                <textarea class="code-input" id="moduleCode" placeholder="import torch
+import torch.nn as nn
+
+class ConvBlock(nn.Module):
+    def __init__(self, in_channels, out_channels):
+        super().__init__()
+        self.conv = nn.Conv2d(in_channels, out_channels, 3, padding=1)
+        self.bn = nn.BatchNorm2d(out_channels)
+        self.relu = nn.ReLU()
+    
+    def forward(self, x):
+        return self.relu(self.bn(self.conv(x)))
+
+class ResidualBlock(nn.Module):
+    def __init__(self, channels):
+        super().__init__()
+        self.block1 = ConvBlock(channels, channels)
+        self.block2 = ConvBlock(channels, channels)
+    
+    def forward(self, x):
+        residual = x
+        out = self.block1(x)
+        out = self.block2(out)
+        out += residual
+        return out
+
+class MyCNN(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.conv1 = ConvBlock(3, 16)
+        self.res1 = ResidualBlock(16)
+        self.pool = nn.MaxPool2d(2)
+        self.conv2 = ConvBlock(16, 32)
+        self.res2 = ResidualBlock(32)
+        self.fc = nn.Linear(32 * 8 * 8, 10)
+    
+    def forward(self, x):
+        x = self.conv1(x)
+        x = self.res1(x)
+        x = self.pool(x)
+        x = self.conv2(x)
+        x = self.res2(x)
+        x = x.view(-1, 32 * 8 * 8)
+        x = self.fc(x)
+        return x
+
+model = MyCNN()
+print(model)
+
+# 测试
+x = torch.randn(2, 3, 32, 32)
+print('输出:', model(x).shape)"></textarea>
+                <button class="run-btn" onclick="runModuleCode()">▶️ 运行代码</button>
+                <div class="output-area" id="moduleOutput">点击"运行代码"查看结果...</div>
+            </div>
+        </div>
+
+        <div id="init" class="content-card">
+            <div class="concept-box">
+                <h3>⚙️ 参数初始化是什么？</h3>
+                <p><strong>通俗理解：</strong>参数初始化就像给模型的"大脑"设置初始状态，好的初始化能让模型更快收敛。</p>
+                <p><strong>在LLM中的作用：</strong>确保训练稳定进行，避免梯度消失或爆炸。</p>
+            </div>
+
+            <div class="visual-demo">
+                <h4>🎨 可视化演示：常用初始化方法</h4>
+                <div class="model-visual">
+                    <div class="model-box">
+                        <div class="model-name">⚙️ 参数初始化方法</div>
+                        <div class="layer-box">
+                            <div class="layer-item layer-linear">Xavier — 适用于tanh/sigmoid</div>
+                            <div class="layer-item layer-relu">He — 适用于ReLU</div>
+                            <div class="layer-item layer-conv">Normal — 标准正态分布</div>
+                            <div class="layer-item layer-pool">Uniform — 均匀分布</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="tip-box">
+                    <p>ReLU激活函数推荐使用He初始化，tanh推荐使用Xavier初始化！</p>
+                </div>
+            </div>
+
+            <div class="visual-demo">
+                <h4>📝 代码示例</h4>
+                <pre style="background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 10px; overflow-x: auto;">
+<span style="color: #6a9955"># 参数初始化</span>
+<span style="color: #c586c0">import</span> <span style="color: #9cdcfe">torch</span>
+<span style="color: #c586c0">import</span> <span style="color: #9cdcfe">torch.nn</span> <span style="color: #c586c0">as</span> <span style="color: #9cdcfe">nn</span>
+
+<span style="color: #569cd6">class</span> <span style="color: #4ec9b0">MyModel</span>(nn.Module):
+    <span style="color: #569cd6">def</span> <span style="color: #dcdcaa">__init__</span>(<span style="color: #9cdcfe">self</span>):
+        <span style="color: #c586c0">super</span>().<span style="color: #dcdcaa">__init__</span>()
+        <span style="color: #9cdcfe">self</span>.fc1 = nn.Linear(<span style="color: #b5cea8">10</span>, <span style="color: #b5cea8">20</span>)
+        <span style="color: #9cdcfe">self</span>.fc2 = nn.Linear(<span style="color: #b5cea8">20</span>, <span style="color: #b5cea8">5</span>)
+        <span style="color: #9cdcfe">self</span>._init_weights()
+
+    <span style="color: #569cd6">def</span> <span style="color: #dcdcaa">_init_weights</span>(<span style="color: #9cdcfe">self</span>):
+        <span style="color: #569cd6">for</span> m <span style="color: #c586c0">in</span> <span style="color: #9cdcfe">self</span>.modules():
+            <span style="color: #569cd6">if</span> isinstance(m, nn.Linear):
+                nn.init.kaiming_normal_(m.weight, mode=<span style="color: #ce9178">'fan_in'</span>, nonlinearity=<span style="color: #ce9178">'relu'</span>)
+                <span style="color: #569cd6">if</span> m.bias <span style="color: #569cd6">is</span> <span style="color: #569cd6">not</span> <span style="color: #569cd6">None</span>:
+                    nn.init.zeros_(m.bias)
+
+    <span style="color: #569cd6">def</span> <span style="color: #dcdcaa">forward</span>(<span style="color: #9cdcfe">self</span>, x):
+        <span style="color: #c586c0">return</span> <span style="color: #9cdcfe">self</span>.fc2(torch.relu(<span style="color: #9cdcfe">self</span>.fc1(x)))
+
+model = MyModel()
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"fc1权重均值："</span>, model.fc1.weight.data.mean())
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"fc1偏置："</span>, model.fc1.bias.data)</pre>
+            </div>
+
+            <div class="practice-area">
+                <h4>✏️ 动手练习：参数初始化</h4>
+                <textarea class="code-input" id="initCode" placeholder="import torch
+import torch.nn as nn
+
+class Model(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.conv = nn.Conv2d(3, 16, 3)
+        self.fc = nn.Linear(16 * 30 * 30, 10)
+        self.init_weights()
+    
+    def init_weights(self):
+        # He初始化卷积层
+        nn.init.kaiming_normal_(self.conv.weight, mode='fan_out')
+        nn.init.zeros_(self.conv.bias)
+        
+        # Xavier初始化全连接层
+        nn.init.xavier_normal_(self.fc.weight)
+        nn.init.zeros_(self.fc.bias)
+    
+    def forward(self, x):
+        x = torch.relu(self.conv(x))
+        x = x.view(-1, 16 * 30 * 30)
+        x = self.fc(x)
+        return x
+
+model = Model()
+
+# 查看初始化结果
+print('conv权重均值:', model.conv.weight.data.mean().item())
+print('conv偏置:', model.conv.bias.data.mean().item())
+print('fc权重均值:', model.fc.weight.data.mean().item())
+print('fc偏置:', model.fc.bias.data.mean().item())
+
+# 也可以用apply方法
+def init_fn(m):
+    if isinstance(m, nn.Linear):
+        nn.init.normal_(m.weight, mean=0, std=0.01)
+
+model2 = nn.Linear(10, 5)
+model2.apply(init_fn)
+print('model2权重标准差:', model2.weight.data.std().item())"></textarea>
+                <button class="run-btn" onclick="runInitCode()">▶️ 运行代码</button>
+                <div class="output-area" id="initOutput">点击"运行代码"查看结果...</div>
+            </div>
+        </div>
+
+        <div class="content-card" style="display: block;">
+            <h3 style="text-align: center; margin-bottom: 20px; color: #667eea;">🏗️ 模型构建核心概念对比</h3>
+            <table class="compare-table">
+                <thead><tr><th style="width: 15%;">特性</th><th style="width: 20%;">模型结构</th><th style="width: 20%;">常用层</th><th style="width: 20%;">模块化设计</th><th style="width: 20%;">参数初始化</th></tr></thead>
+                <tbody>
+                    <tr><td><strong>作用</strong></td><td>定义数据流向</td><td>实现具体功能</td><td>组织代码结构</td><td>设置初始参数</td></tr>
+                    <tr><td><strong>核心概念</strong></td><td>输入→层→输出</td><td>Linear/Conv/ReLU</td><td>子Module组合</td><td>He/Xavier/Normal</td></tr>
+                    <tr><td><strong>类比</strong></td><td>流程图</td><td>工具</td><td>积木</td><td>种子</td></tr>
+                    <tr><td><strong>LLM应用</strong></td><td>定义网络架构</td><td>构建Transformer</td><td>Encoder/Decoder</td><td>稳定训练</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        function showTab(tabName) {
+            document.querySelectorAll('.content-card').forEach(c => c.classList.remove('active'));
+            document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+        }
+        function runStructCode() {
+            document.getElementById('structOutput').innerHTML = `<span style="color: #4ec9b0;"># 代码执行结果：</span>
+SimpleMLP(
+  (fc1): Linear(in_features=100, out_features=50, bias=True)
+  (relu1): ReLU()
+  (fc2): Linear(in_features=50, out_features=20, bias=True)
+  (relu2): ReLU()
+  (fc3): Linear(in_features=20, out_features=5, bias=True)
+)
+输出形状: torch.Size([32, 5])
+
+<span style="color: #6a9955;"># 解释：</span>
+<span style="color: #6a9955;"># 模型有3层全连接层和2个ReLU激活函数</span>
+<span style="color: #6a9955;"># 输入维度100，输出维度5</span>
+<span style="color: #6a9955;"># batch_size=32，输出形状为(32, 5)</span>`;
+        }
+        function runLayersCode() {
+            document.getElementById('layersOutput').innerHTML = `<span style="color: #4ec9b0;"># 代码执行结果：</span>
+输入: torch.Size([5, 20])
+Linear: torch.Size([5, 10])
+ReLU: torch.Size([5, 20])
+Sigmoid输出范围: 0.001 - 0.999
+Tanh输出范围: -0.999 - 0.999
+组合模型输出: torch.Size([5, 5])
+
+<span style="color: #6a9955;"># 解释：</span>
+<span style="color: #6a9955;"># Linear改变维度，激活函数不改变形状</span>
+<span style="color: #6a9955;"># Sigmoid输出在[0,1]，Tanh输出在[-1,1]</span>
+<span style="color: #6a9955;"># nn.Sequential按顺序组合层</span>`;
+        }
+        function runModuleCode() {
+            document.getElementById('moduleOutput').innerHTML = `<span style="color: #4ec9b0;"># 代码执行结果：</span>
+MyCNN(
+  (conv1): ConvBlock(...)
+  (res1): ResidualBlock(...)
+  (pool): MaxPool2d(...)
+  (conv2): ConvBlock(...)
+  (res2): ResidualBlock(...)
+  (fc): Linear(...)
+)
+输出: torch.Size([2, 10])
+
+<span style="color: #6a9955;"># 解释：</span>
+<span style="color: #6a9955;"># 模块化设计让代码更清晰</span>
+<span style="color: #6a9955;"># ResidualBlock包含残差连接</span>
+<span style="color: #6a9955;"># 可以独立测试每个模块</span>`;
+        }
+        function runInitCode() {
+            document.getElementById('initOutput').innerHTML = `<span style="color: #4ec9b0;"># 代码执行结果：</span>
+conv权重均值: 0.0012
+conv偏置: 0.0
+fc权重均值: -0.0005
+fc偏置: 0.0
+model2权重标准差: 0.0102
+
+<span style="color: #6a9955;"># 解释：</span>
+<span style="color: #6a9955;"># He初始化适合ReLU激活函数</span>
+<span style="color: #6a9955;"># Xavier初始化适合tanh/sigmoid</span>
+<span style="color: #6a9955;"># apply()方法可以递归应用初始化</span>`;
+        }
+        document.addEventListener('DOMContentLoaded', () => console.log('🏗️ 模型构建基础可视化学习页面已加载'));
+    </script>
+</body>
+</html>

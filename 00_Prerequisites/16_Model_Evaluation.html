@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>16. 模型评估与验证可视化学习</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif; background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); min-height: 100vh; color: #333; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .header { text-align: center; padding: 40px 20px; color: white; }
+        .header h1 { font-size: 2.5em; margin-bottom: 10px; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); }
+        .header p { font-size: 1.2em; opacity: 0.9; }
+        .nav-tabs { display: flex; justify-content: center; gap: 10px; margin-bottom: 30px; flex-wrap: wrap; }
+        .nav-tab { padding: 12px 24px; background: rgba(255,255,255,0.2); border: 2px solid white; color: white; border-radius: 25px; cursor: pointer; transition: all 0.3s ease; font-size: 1em; font-weight: bold; }
+        .nav-tab:hover { background: white; color: #fa709a; }
+        .nav-tab.active { background: white; color: #fa709a; }
+        .content-card { background: white; border-radius: 20px; padding: 30px; margin-bottom: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); display: none; }
+        .content-card.active { display: block; animation: fadeIn 0.5s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .concept-box { background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%); border-radius: 15px; padding: 25px; margin-bottom: 25px; border-left: 5px solid #fa709a; }
+        .concept-box h3 { color: #fa709a; margin-bottom: 15px; font-size: 1.3em; }
+        .concept-box p { line-height: 1.8; color: #555; margin-bottom: 10px; }
+        .visual-demo { background: #f8f9fa; border-radius: 15px; padding: 25px; margin-bottom: 25px; border: 2px solid #e9ecef; }
+        .visual-demo h4 { color: #495057; margin-bottom: 20px; font-size: 1.1em; }
+        .eval-visual { display: flex; flex-direction: column; align-items: center; gap: 20px; }
+        .eval-box { border: 3px solid #fa709a; border-radius: 15px; padding: 20px; min-width: 300px; text-align: center; background: white; animation: slideIn 0.5s ease; }
+        @keyframes slideIn { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: scale(1); } }
+        .eval-name { font-size: 1.2em; font-weight: bold; color: #fa709a; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid #e9ecef; }
+        .practice-area { background: linear-gradient(135deg, #ffeaa7 0%, #fab1a0 100%); border-radius: 15px; padding: 25px; margin-top: 25px; }
+        .practice-area h4 { color: #c0392b; margin-bottom: 15px; }
+        .code-input { width: 100%; min-height: 120px; border: 2px solid #ddd; border-radius: 10px; padding: 15px; font-family: 'Courier New', monospace; font-size: 0.95em; resize: vertical; margin-bottom: 15px; }
+        .run-btn { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); color: white; border: none; padding: 12px 30px; border-radius: 25px; cursor: pointer; font-size: 1em; font-weight: bold; transition: transform 0.2s; }
+        .run-btn:hover { transform: scale(1.05); }
+        .output-area { background: #1e1e1e; color: #4ec9b0; border-radius: 10px; padding: 15px; margin-top: 15px; font-family: 'Courier New', monospace; min-height: 80px; white-space: pre-wrap; }
+        .tip-box { background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 10px; padding: 15px; margin: 15px 0; display: flex; align-items: flex-start; gap: 10px; }
+        .tip-box::before { content: "💡"; font-size: 1.5em; }
+        .tip-box p { margin: 0; color: #856404; }
+        .compare-table { width: 100%; border-collapse: collapse; margin: 20px 0; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,1); }
+        .compare-table th { background: #fa709a; color: white; padding: 15px; text-align: left; }
+        .compare-table td { padding: 15px; border-bottom: 1px solid #e9ecef; }
+        .compare-table tr:nth-child(even) { background: #f8f9fa; }
+        .eval-diagram { display: flex; justify-content: center; align-items: center; gap: 20px; flex-wrap: wrap; }
+        .eval-item { text-align: center; padding: 15px; background: #ffeaa7; border-radius: 10px; min-width: 120px; }
+        .eval-icon { font-size: 2em; margin-bottom: 5px; }
+        .eval-name-text { font-weight: bold; color: #fa709a; }
+        @media (max-width: 768px) { .header h1 { font-size: 1.8em; } .nav-tab { padding: 10px 18px; font-size: 0.9em; } .content-card { padding: 20px; } .eval-box { min-width: 280px; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 模型评估与验证可视化学习</h1>
+            <p>零基础也能轻松理解准确率、混淆矩阵和交叉验证</p>
+        </div>
+
+        <div class="nav-tabs">
+            <button class="nav-tab active" onclick="showTab('metrics')">📈 评估指标</button>
+            <button class="nav-tab" onclick="showTab('confusion')">🧮 混淆矩阵</button>
+            <button class="nav-tab" onclick="showTab('crossval')">🔄 交叉验证</button>
+            <button class="nav-tab" onclick="showTab('practice')">✏️ 实战练习</button>
+        </div>
+
+        <div id="metrics" class="content-card active">
+            <div class="concept-box">
+                <h3>📈 什么是评估指标？</h3>
+                <p><strong>通俗理解：</strong>评估指标就像考试分数，用来衡量模型学得好不好。不同的任务需要不同的指标。</p>
+                <p><strong>分类任务：</strong>准确率、精确率、召回率、F1分数</p>
+                <p><strong>回归任务：</strong>MSE、MAE、R²分数</p>
+            </div>
+
+            <div class="visual-demo">
+                <h4>🎨 可视化演示：评估指标</h4>
+                <div class="eval-diagram">
+                    <div class="eval-item">
+                        <div class="eval-icon">✅</div>
+                        <div class="eval-name-text">准确率</div>
+                        <div style="font-size: 0.8em; color: #666;">正确预测比例</div>
+                    </div>
+                    <div class="eval-item">
+                        <div class="eval-icon">🔍</div>
+                        <div class="eval-name-text">精确率</div>
+                        <div style="font-size: 0.8em; color: #666;">预测正确的比例</div>
+                    </div>
+                    <div class="eval-item">
+                        <div class="eval-icon">🎯</div>
+                        <div class="eval-name-text">召回率</div>
+                        <div style="font-size: 0.8em; color: #666;">实际正确被找到的比例</div>
+                    </div>
+                    <div class="eval-item">
+                        <div class="eval-icon">⚖️</div>
+                        <div class="eval-name-text">F1分数</div>
+                        <div style="font-size: 0.8em; color: #666;">精确率和召回率的调和平均</div>
+                    </div>
+                </div>
+                <div class="tip-box">
+                    <p>不平衡数据时，准确率不可靠，需要看精确率和召回率！</p>
+                </div>
+            </div>
+
+            <div class="visual-demo">
+                <h4>📝 代码示例：评估指标</h4>
+                <pre style="background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 10px; overflow-x: auto;">
+<span style="color: #6a9955"># 评估指标</span>
+<span style="color: #c586c0">import</span> <span style="color: #9cdcfe">torch</span>
+<span style="color: #c586c0">import</span> <span style="color: #9cdcfe">torch.nn</span> <span style="color: #c586c0">as</span> <span style="color: #9cdcfe">nn</span>
+
+<span style="color: #6a9955"># 模拟预测和真实值</span>
+predictions = torch.tensor([<span style="color: #b5cea8">0</span>, <span style="color: #b5cea8">1</span>, <span style="color: #b5cea8">1</span>, <span style="color: #b5cea8">0</span>, <span style="color: #b5cea8">1</span>, <span style="color: #b5cea8">0</span>, <span style="color: #b5cea8">1</span>, <span style="color: #b5cea8">0</span>])
+targets = torch.tensor([<span style="color: #b5cea8">0</span>, <span style="color: #b5cea8">1</span>, <span style="color: #b5cea8">0</span>, <span style="color: #b5cea8">0</span>, <span style="color: #b5cea8">1</span>, <span style="color: #b5cea8">1</span>, <span style="color: #b5cea8">1</span>, <span style="color: #b5cea8">0</span>])
+
+<span style="color: #6a9955"># 1. 准确率</span>
+accuracy = (predictions == targets).float().mean()
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"准确率:"</span>, accuracy.item())
+
+<span style="color: #6a9955"># 2. 精确率（Precision）</span>
+tp = ((predictions == <span style="color: #b5cea8">1</span>) & (targets == <span style="color: #b5cea8">1</span>)).sum().float()
+fp = ((predictions == <span style="color: #b5cea8">1</span>) & (targets == <span style="color: #b5cea8">0</span>)).sum().float()
+precision = tp / (tp + fp)
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"精确率:"</span>, precision.item())
+
+<span style="color: #6a9955"># 3. 召回率（Recall）</span>
+fn = ((predictions == <span style="color: #b5cea8">0</span>) & (targets == <span style="color: #b5cea8">1</span>)).sum().float()
+recall = tp / (tp + fn)
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"召回率:"</span>, recall.item())
+
+<span style="color: #6a9955"># 4. F1分数</span>
+f1 = <span style="color: #b5cea8">2</span> * precision * recall / (precision + recall)
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"F1分数:"</span>, f1.item())
+
+<span style="color: #6a9955"># 5. 回归指标</span>
+reg_pred = torch.tensor([<span style="color: #b5cea8">2.5</span>, <span style="color: #b5cea8">3.2</span>, <span style="color: #b5cea8">1.8</span>])
+reg_target = torch.tensor([<span style="color: #b5cea8">3.0</span>, <span style="color: #b5cea8">3.0</span>, <span style="color: #b5cea8">2.0</span>])
+
+mse = nn.MSELoss()(reg_pred, reg_target)
+mae = nn.L1Loss()(reg_pred, reg_target)
+r2 = <span style="color: #b5cea8">1</span> - (mse / reg_target.var())
+
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"\n回归指标:"</span>)
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"MSE:"</span>, mse.item())
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"MAE:"</span>, mae.item())
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"R²:"</span>, r2.item())</pre>
+            </div>
+
+            <div class="practice-area">
+                <h4>✏️ 动手练习：评估指标</h4>
+                <textarea class="code-input" id="metricsCode" placeholder="import torch
+
+# 计算评估指标
+def calculate_metrics(predictions, targets):
+    # 准确率
+    accuracy = (predictions == targets).float().mean()
+    
+    # 二分类指标
+    tp = ((predictions == 1) & (targets == 1)).sum().float()
+    fp = ((predictions == 1) & (targets == 0)).sum().float()
+    fn = ((predictions == 0) & (targets == 1)).sum().float()
+    tn = ((predictions == 0) & (targets == 0)).sum().float()
+    
+    # 精确率
+    precision = tp / (tp + fp + 1e-8)
+    
+    # 召回率
+    recall = tp / (tp + fn + 1e-8)
+    
+    # F1分数
+    f1 = 2 * precision * recall / (precision + recall + 1e-8)
+    
+    # 特异性
+    specificity = tn / (tn + fp + 1e-8)
+    
+    return {
+        'accuracy': accuracy.item(),
+        'precision': precision.item(),
+        'recall': recall.item(),
+        'f1': f1.item(),
+        'specificity': specificity.item()
+    }
+
+# 测试1：均衡数据
+predictions1 = torch.tensor([0, 1, 1, 0, 1, 0, 1, 0, 0, 1])
+targets1 = torch.tensor([0, 1, 0, 0, 1, 1, 1, 0, 1, 1])
+print('测试1（均衡数据）:')
+print(calculate_metrics(predictions1, targets1))
+
+# 测试2：不平衡数据（9个负样本，1个正样本）
+predictions2 = torch.tensor([0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+targets2 = torch.tensor([0, 0, 0, 0, 0, 0, 0, 0, 0, 1])
+print('\n测试2（不平衡数据，全部预测为负）:')
+print(calculate_metrics(predictions2, targets2))
+
+# 测试3：不平衡数据（全部预测为正）
+predictions3 = torch.tensor([1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
+print('\n测试3（不平衡数据，全部预测为正）:')
+print(calculate_metrics(predictions3, targets2))
+
+# 结论
+print('\n结论：')
+print('1. 均衡数据时，所有指标都能反映模型好坏')
+print('2. 不平衡数据时，准确率很高但召回率为0')
+print('3. 需要综合看精确率、召回率和F1分数')"></textarea>
+                <button class="run-btn" onclick="runMetricsCode()">▶️ 运行代码</button>
+                <div class="output-area" id="metricsOutput">点击"运行代码"查看结果...</div>
+            </div>
+        </div>
+
+        <div id="confusion" class="content-card">
+            <div class="concept-box">
+                <h3>🧮 什么是混淆矩阵？</h3>
+                <p><strong>通俗理解：</strong>混淆矩阵就像一张成绩单，告诉你模型在每个类别上的表现——哪些预测对了，哪些预测错了。</p>
+                <p><strong>四个指标：</strong>真正例(TP)、假正例(FP)、假反例(FN)、真反例(TN)</p>
+            </div>
+
+            <div class="visual-demo">
+                <h4>🎨 可视化演示：混淆矩阵</h4>
+                <div class="eval-visual">
+                    <div class="eval-box">
+                        <div class="eval-name">🧮 混淆矩阵结构</div>
+                        <div style="font-size: 0.9em; color: #666; text-align: left;">
+                            <div style="background: #e8f5e9; padding: 10px; margin: 5px 0; border-radius: 5px;">✅ <strong>TP（真正例）</strong>: 预测为正，实际为正</div>
+                            <div style="background: #ffeaa7; padding: 10px; margin: 5px 0; border-radius: 5px;">❌ <strong>FP（假正例）</strong>: 预测为正，实际为负</div>
+                            <div style="background: #ffeaa7; padding: 10px; margin: 5px 0; border-radius: 5px;">❌ <strong>FN（假反例）</strong>: 预测为负，实际为正</div>
+                            <div style="background: #e8f5e9; padding: 10px; margin: 5px 0; border-radius: 5px;">✅ <strong>TN（真反例）</strong>: 预测为负，实际为负</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="tip-box">
+                    <p>对角线是正确预测，非对角线是错误预测！</p>
+                </div>
+            </div>
+
+            <div class="visual-demo">
+                <h4>📝 代码示例：混淆矩阵</h4>
+                <pre style="background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 10px; overflow-x: auto;">
+<span style="color: #6a9955"># 混淆矩阵</span>
+<span style="color: #c586c0">import</span> <span style="color: #9cdcfe">torch</span>
+
+<span style="color: #6a9955"># 计算混淆矩阵</span>
+<span style="color: #569cd6">def</span> <span style="color: #dcdcaa">confusion_matrix</span>(predictions, targets, num_classes=<span style="color: #b5cea8">2</span>):
+    matrix = torch.zeros(num_classes, num_classes)
+    <span style="color: #569cd6">for</span> pred, target <span style="color: #569cd6">in</span> zip(predictions, targets):
+        matrix[target][pred] += <span style="color: #b5cea8">1</span>
+    <span style="color: #c586c0">return</span> matrix
+
+<span style="color: #6a9955"># 二分类示例</span>
+predictions = torch.tensor([<span style="color: #b5cea8">0</span>, <span style="color: #b5cea8">1</span>, <span style="color: #b5cea8">1</span>, <span style="color: #b5cea8">0</span>, <span style="color: #b5cea8">1</span>, <span style="color: #b5cea8">0</span>, <span style="color: #b5cea8">1</span>, <span style="color: #b5cea8">0</span>])
+targets = torch.tensor([<span style="color: #b5cea8">0</span>, <span style="color: #b5cea8">1</span>, <span style="color: #b5cea8">0</span>, <span style="color: #b5cea8">0</span>, <span style="color: #b5cea8">1</span>, <span style="color: #b5cea8">1</span>, <span style="color: #b5cea8">1</span>, <span style="color: #b5cea8">0</span>])
+
+cm = confusion_matrix(predictions, targets)
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"二分类混淆矩阵:"</span>)
+<span style="color: #dcdcaa">print</span>(cm)
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"\n解释:"</span>)
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"TP ="</span>, cm[<span style="color: #b5cea8">1</span>, <span style="color: #b5cea8">1</span>].item())
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"FP ="</span>, cm[<span style="color: #b5cea8">0</span>, <span style="color: #b5cea8">1</span>].item())
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"FN ="</span>, cm[<span style="color: #b5cea8">1</span>, <span style="color: #b5cea8">0</span>].item())
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"TN ="</span>, cm[<span style="color: #b5cea8">0</span>, <span style="color: #b5cea8">0</span>].item())
+
+<span style="color: #6a9955"># 多分类示例</span>
+multi_pred = torch.tensor([<span style="color: #b5cea8">0</span>, <span style="color: #b5cea8">1</span>, <span style="color: #b5cea8">2</span>, <span style="color: #b5cea8">0</span>, <span style="color: #b5cea8">1</span>, <span style="color: #b5cea8">2</span>, <span style="color: #b5cea8">0</span>, <span style="color: #b5cea8">1</span>, <span style="color: #b5cea8">2</span>])
+multi_target = torch.tensor([<span style="color: #b5cea8">0</span>, <span style="color: #b5cea8">1</span>, <span style="color: #b5cea8">2</span>, <span style="color: #b5cea8">0</span>, <span style="color: #b5cea8">0</span>, <span style="color: #b5cea8">2</span>, <span style="color: #b5cea8">1</span>, <span style="color: #b5cea8">1</span>, <span style="color: #b5cea8">1</span>])
+
+multi_cm = confusion_matrix(multi_pred, multi_target, num_classes=<span style="color: #b5cea8">3</span>)
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"\n多分类混淆矩阵:"</span>)
+<span style="color: #dcdcaa">print</span>(multi_cm)</pre>
+            </div>
+
+            <div class="practice-area">
+                <h4>✏️ 动手练习：混淆矩阵</h4>
+                <textarea class="code-input" id="confusionCode" placeholder="import torch
+
+# 多分类混淆矩阵
+def confusion_matrix_multi(predictions, targets, num_classes):
+    cm = torch.zeros(num_classes, num_classes, dtype=torch.int32)
+    for pred, target in zip(predictions, targets):
+        cm[target, pred] += 1
+    return cm
+
+# 多分类示例
+predictions = torch.tensor([0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2])
+targets = torch.tensor([0, 1, 2, 0, 0, 2, 1, 1, 1, 0, 1, 2])
+
+cm = confusion_matrix_multi(predictions, targets, num_classes=3)
+print('混淆矩阵:')
+print(cm)
+
+# 计算每个类别的准确率
+print('\n每个类别的指标:')
+for i in range(3):
+    tp = cm[i, i].item()
+    fn = cm[i, :].sum().item() - tp
+    fp = cm[:, i].sum().item() - tp
+    tn = cm.sum().item() - tp - fn - fp
+    
+    precision = tp / (tp + fp) if (tp + fp) > 0 else 0
+    recall = tp / (tp + fn) if (tp + fn) > 0 else 0
+    f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0
+    
+    print(f'类别{i}:')
+    print(f'  TP={tp}, FP={fp}, FN={fn}, TN={tn}')
+    print(f'  精确率={precision:.2f}, 召回率={recall:.2f}, F1={f1:.2f}')
+
+# 计算总体指标
+accuracy = cm.diag().sum().item() / cm.sum().item()
+macro_f1 = 0
+for i in range(3):
+    tp = cm[i, i].item()
+    fn = cm[i, :].sum().item() - tp
+    fp = cm[:, i].sum().item() - tp
+    precision = tp / (tp + fp) if (tp + fp) > 0 else 0
+    recall = tp / (tp + fn) if (tp + fn) > 0 else 0
+    macro_f1 += 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0
+
+macro_f1 /= 3
+print(f'\n总体准确率: {accuracy:.2f}')
+print(f'宏平均F1: {macro_f1:.2f}')"></textarea>
+                <button class="run-btn" onclick="runConfusionCode()">▶️ 运行代码</button>
+                <div class="output-area" id="confusionOutput">点击"运行代码"查看结果...</div>
+            </div>
+        </div>
+
+        <div id="crossval" class="content-card">
+            <div class="concept-box">
+                <h3>🔄 什么是交叉验证？</h3>
+                <p><strong>通俗理解：</strong>交叉验证就像多次考试，每次用不同的题目，确保模型稳定可靠。避免一次考试的偶然因素。</p>
+                <p><strong>常用方法：</strong>K折交叉验证、留一法、分层K折</p>
+            </div>
+
+            <div class="visual-demo">
+                <h4>🎨 可视化演示：K折交叉验证</h4>
+                <div class="eval-visual">
+                    <div class="eval-box">
+                        <div class="eval-name">🔄 K折交叉验证流程</div>
+                        <div style="font-size: 0.9em; color: #666; text-align: left;">
+                            <div style="background: #e3f2fd; padding: 10px; margin: 5px 0; border-radius: 5px;">📦 <strong>步骤1</strong>: 将数据分成K个折（比如K=5）</div>
+                            <div style="background: #fff3cd; padding: 10px; margin: 5px 0; border-radius: 5px;">🔄 <strong>步骤2</strong>: 轮流用1折做验证，其余K-1折做训练</div>
+                            <div style="background: #e8f5e9; padding: 10px; margin: 5px 0; border-radius: 5px;">📊 <strong>步骤3</strong>: 取K次结果的平均值作为最终评估</div>
+                            <div style="background: #f8f0fe; padding: 10px; margin: 5px 0; border-radius: 5px;">🎯 <strong>优点</strong>: 充分利用数据，评估更可靠</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="tip-box">
+                    <p>K值常用5或10，数据少时K可以大一些！</p>
+                </div>
+            </div>
+
+            <div class="visual-demo">
+                <h4>📝 代码示例：交叉验证</h4>
+                <pre style="background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 10px; overflow-x: auto;">
+<span style="color: #6a9955"># K折交叉验证</span>
+<span style="color: #c586c0">import</span> <span style="color: #9cdcfe">torch</span>
+<span style="color: #c586c0">import</span> <span style="color: #9cdcfe">torch.nn</span> <span style="color: #c586c0">as</span> <span style="color: #9cdcfe">nn</span>
+<span style="color: #c586c0">import</span> <span style="color: #9cdcfe">torch.optim</span> <span style="color: #c586c0">as</span> <span style="color: #9cdcfe">optim</span>
+
+<span style="color: #569cd6">class</span> <span style="color: #4ec9b0">SimpleModel</span>(nn.Module):
+    <span style="color: #569cd6">def</span> <span style="color: #dcdcaa">__init__</span>(<span style="color: #9cdcfe">self</span>):
+        <span style="color: #c586c0">super</span>().<span style="color: #dcdcaa">__init__</span>()
+        <span style="color: #9cdcfe">self</span>.fc = nn.Linear(<span style="color: #b5cea8">10</span>, <span style="color: #b5cea8">2</span>)
+    
+    <span style="color: #569cd6">def</span> <span style="color: #dcdcaa">forward</span>(<span style="color: #9cdcfe">self</span>, x):
+        <span style="color: #c586c0">return</span> <span style="color: #9cdcfe">self</span>.fc(x)
+
+<span style="color: #6a9955"># K折交叉验证实现</span>
+<span style="color: #569cd6">def</span> <span style="color: #dcdcaa">k_fold_cross_validation</span>(X, y, k=<span style="color: #b5cea8">5</span>):
+    fold_size = len(X) // k
+    accuracies = []
+    
+    <span style="color: #569cd6">for</span> i <span style="color: #569cd6">in</span> range(k):
+        <span style="color: #6a9955"># 划分训练集和验证集</span>
+        val_start = i * fold_size
+        val_end = val_start + fold_size
+        
+        X_train = torch.cat([X[:val_start], X[val_end:]])
+        y_train = torch.cat([y[:val_start], y[val_end:]])
+        X_val = X[val_start:val_end]
+        y_val = y[val_start:val_end]
+        
+        <span style="color: #6a9955"># 训练模型</span>
+        model = SimpleModel()
+        criterion = nn.CrossEntropyLoss()
+        optimizer = optim.Adam(model.parameters(), lr=<span style="color: #b5cea8">0.001</span>)
+        
+        <span style="color: #569cd6">for</span> epoch <span style="color: #569cd6">in</span> range(<span style="color: #b5cea8">50</span>):
+            optimizer.zero_grad()
+            output = model(X_train)
+            loss = criterion(output, y_train)
+            loss.backward()
+            optimizer.step()
+        
+        <span style="color: #6a9955"># 评估</span>
+        model.eval()
+        <span style="color: #c586c0">with</span> torch.no_grad():
+            val_output = model(X_val)
+            accuracy = (val_output.argmax(dim=<span style="color: #b5cea8">1</span>) == y_val).float().mean().item()
+            accuracies.append(accuracy)
+        
+        <span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">f"折{i+1}: 准确率={accuracy:.4f}"</span>)
+    
+    <span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">f"\n平均准确率={torch.tensor(accuracies).mean().item():.4f}"</span>)
+    <span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">f"标准差={torch.tensor(accuracies).std().item():.4f}"</span>)
+    <span style="color: #c586c0">return</span> accuracies
+
+<span style="color: #6a9955"># 模拟数据</span>
+X = torch.randn(<span style="color: #b5cea8">100</span>, <span style="color: #b5cea8">10</span>)
+y = torch.randint(<span style="color: #b5cea8">0</span>, <span style="color: #b5cea8">2</span>, (<span style="color: #b5cea8">100</span>,))
+
+<span style="color: #6a9955"># 执行交叉验证</span>
+accuracies = k_fold_cross_validation(X, y, k=<span style="color: #b5cea8">5</span>)</pre>
+            </div>
+
+            <div class="practice-area">
+                <h4>✏️ 动手练习：交叉验证</h4>
+                <textarea class="code-input" id="crossvalCode" placeholder="import torch
+import torch.nn as nn
+import torch.optim as optim
+
+# 分层K折交叉验证（保持类别比例）
+def stratified_k_fold(X, y, k=5):
+    # 按类别分组
+    classes = torch.unique(y)
+    fold_indices = []
+    
+    for _ in range(k):
+        fold_indices.append([])
+    
+    # 按类别分配
+    for cls in classes:
+        cls_indices = (y == cls).nonzero().squeeze()
+        cls_indices = cls_indices[torch.randperm(len(cls_indices))]
+        
+        fold_size = len(cls_indices) // k
+        for i in range(k):
+            start = i * fold_size
+            end = start + fold_size if i < k-1 else len(cls_indices)
+            fold_indices[i].extend(cls_indices[start:end].tolist())
+    
+    return fold_indices
+
+# 定义模型
+class Model(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.fc = nn.Linear(20, 3)
+    
+    def forward(self, x):
+        return self.fc(x)
+
+# 创建不平衡数据
+X = torch.randn(100, 20)
+y = torch.tensor([0]*80 + [1]*15 + [2]*5)
+
+# 分层K折
+fold_indices = stratified_k_fold(X, y, k=5)
+
+# 执行交叉验证
+accuracies = []
+for i, val_idx in enumerate(fold_indices):
+    train_idx = [j for j in range(len(X)) if j not in val_idx]
+    
+    X_train, y_train = X[train_idx], y[train_idx]
+    X_val, y_val = X[val_idx], y[val_idx]
+    
+    # 检查类别比例
+    print(f'折{i+1}:')
+    print(f'  训练集类别比例: 0={((y_train==0).sum()/len(y_train)).item():.2f}, '
+          f'1={((y_train==1).sum()/len(y_train)).item():.2f}, '
+          f'2={((y_train==2).sum()/len(y_train)).item():.2f}')
+    print(f'  验证集类别比例: 0={((y_val==0).sum()/len(y_val)).item():.2f}, '
+          f'1={((y_val==1).sum()/len(y_val)).item():.2f}, '
+          f'2={((y_val==2).sum()/len(y_val)).item():.2f}')
+    
+    # 训练和评估
+    model = Model()
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
+    criterion = nn.CrossEntropyLoss()
+    
+    for epoch in range(30):
+        optimizer.zero_grad()
+        loss = criterion(model(X_train), y_train)
+        loss.backward()
+        optimizer.step()
+    
+    model.eval()
+    with torch.no_grad():
+        acc = (model(X_val).argmax(dim=1) == y_val).float().mean().item()
+        accuracies.append(acc)
+        print(f'  准确率: {acc:.4f}\n')
+
+print(f'平均准确率: {torch.tensor(accuracies).mean().item():.4f}')
+print(f'标准差: {torch.tensor(accuracies).std().item():.4f}')
+print('结论：分层K折保持了类别比例，评估更可靠')"></textarea>
+                <button class="run-btn" onclick="runCrossvalCode()">▶️ 运行代码</button>
+                <div class="output-area" id="crossvalOutput">点击"运行代码"查看结果...</div>
+            </div>
+        </div>
+
+        <div id="practice" class="content-card">
+            <div class="concept-box">
+                <h3>✏️ 模型评估实战练习</h3>
+                <p><strong>通俗理解：</strong>现在我们来综合运用各种评估方法，对模型进行全面评估。</p>
+                <p><strong>在LLM中的作用：</strong>模型评估是确保模型质量的关键，特别是在部署前需要全面测试。</p>
+            </div>
+
+            <div class="visual-demo">
+                <h4>📝 完整示例：模型评估流程</h4>
+                <pre style="background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 10px; overflow-x: auto;">
+<span style="color: #6a9955"># 完整模型评估流程</span>
+<span style="color: #c586c0">import</span> <span style="color: #9cdcfe">torch</span>
+<span style="color: #c586c0">import</span> <span style="color: #9cdcfe">torch.nn</span> <span style="color: #c586c0">as</span> <span style="color: #9cdcfe">nn</span>
+
+<span style="color: #569cd6">class</span> <span style="color: #4ec9b0">Evaluator</span>:
+    <span style="color: #569cd6">def</span> <span style="color: #dcdcaa">__init__</span>(<span style="color: #9cdcfe">self</span>, model, device):
+        <span style="color: #9cdcfe">self</span>.model = model.to(device)
+        <span style="color: #9cdcfe">self</span>.device = device
+    
+    <span style="color: #569cd6">def</span> <span style="color: #dcdcaa">evaluate</span>(<span style="color: #9cdcfe">self</span>, dataloader):
+        <span style="color: #9cdcfe">self</span>.model.eval()
+        all_preds = []
+        all_targets = []
+        
+        <span style="color: #c586c0">with</span> torch.no_grad():
+            <span style="color: #569cd6">for</span> inputs, targets <span style="color: #569cd6">in</span> dataloader:
+                inputs, targets = inputs.to(<span style="color: #9cdcfe">self</span>.device), targets.to(<span style="color: #9cdcfe">self</span>.device)
+                outputs = <span style="color: #9cdcfe">self</span>.model(inputs)
+                all_preds.extend(outputs.argmax(dim=<span style="color: #b5cea8">1</span>).cpu().tolist())
+                all_targets.extend(targets.cpu().tolist())
+        
+        all_preds = torch.tensor(all_preds)
+        all_targets = torch.tensor(all_targets)
+        
+        accuracy = (all_preds == all_targets).float().mean().item()
+        <span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">f"准确率: {accuracy:.4f}"</span>)
+        <span style="color: #c586c0">return</span> accuracy
+
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"✅ 评估器已准备就绪"</span>)
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"评估流程: 加载模型 → 前向传播 → 计算指标 → 输出结果"</span>)</pre>
+            </div>
+
+            <div class="practice-area">
+                <h4>✏️ 动手练习：完整评估流程</h4>
+                <textarea class="code-input" id="practiceCode" placeholder="import torch
+import torch.nn as nn
+import torch.optim as optim
+
+# 完整评估流程
+class Model(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.fc1 = nn.Linear(10, 50)
+        self.fc2 = nn.Linear(50, 2)
+    
+    def forward(self, x):
+        x = torch.relu(self.fc1(x))
+        return self.fc2(x)
+
+# 创建数据
+x_train = torch.randn(200, 10)
+y_train = (x_train[:, 0] > 0).long()
+
+x_val = torch.randn(50, 10)
+y_val = (x_val[:, 0] > 0).long()
+
+x_test = torch.randn(50, 10)
+y_test = (x_test[:, 0] > 0).long()
+
+# 训练模型
+model = Model()
+optimizer = optim.Adam(model.parameters(), lr=0.001)
+criterion = nn.CrossEntropyLoss()
+
+for epoch in range(100):
+    optimizer.zero_grad()
+    loss = criterion(model(x_train), y_train)
+    loss.backward()
+    optimizer.step()
+
+# 评估函数
+def evaluate(model, x, y):
+    model.eval()
+    with torch.no_grad():
+        output = model(x)
+        preds = output.argmax(dim=1)
+        
+        accuracy = (preds == y).float().mean().item()
+        
+        tp = ((preds == 1) & (y == 1)).sum().float().item()
+        fp = ((preds == 1) & (y == 0)).sum().float().item()
+        fn = ((preds == 0) & (y == 1)).sum().float().item()
+        
+        precision = tp / (tp + fp) if (tp + fp) > 0 else 0
+        recall = tp / (tp + fn) if (tp + fn) > 0 else 0
+        f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0
+    
+    return {'accuracy': accuracy, 'precision': precision, 'recall': recall, 'f1': f1}
+
+# 评估各数据集
+train_metrics = evaluate(model, x_train, y_train)
+val_metrics = evaluate(model, x_val, y_val)
+test_metrics = evaluate(model, x_test, y_test)
+
+print('训练集评估:')
+print(train_metrics)
+print('\n验证集评估:')
+print(val_metrics)
+print('\n测试集评估:')
+print(test_metrics)
+
+# 分析结果
+print('\n分析:')
+if train_metrics['accuracy'] > val_metrics['accuracy']:
+    print('训练集准确率高于验证集，可能存在过拟合')
+else:
+    print('模型泛化能力良好')
+
+if test_metrics['accuracy'] close(val_metrics['accuracy']):
+    print('测试集和验证集表现一致，评估可靠')
+else:
+    print('测试集和验证集表现不一致，需要检查数据分布')"></textarea>
+                <button class="run-btn" onclick="runPracticeCode()">▶️ 运行代码</button>
+                <div class="output-area" id="practiceOutput">点击"运行代码"查看结果...</div>
+            </div>
+        </div>
+
+        <div class="content-card" style="display: block;">
+            <h3 style="text-align: center; margin-bottom: 20px; color: #fa709a;">📊 模型评估方法对比表</h3>
+            <table class="compare-table">
+                <thead><tr><th style="width: 15%;">方法</th><th style="width: 20%;">类型</th><th style="width: 20%;">作用</th><th style="width: 20%;">优点</th><th style="width: 20%;">适用场景</th></tr></thead>
+                <tbody>
+                    <tr><td><strong>准确率</strong></td><td>指标</td><td>正确预测比例</td><td>简单直观</td><td>均衡数据</td></tr>
+                    <tr><td><strong>精确率</strong></td><td>指标</td><td>预测为正的正确率</td><td>关注假阳性</td><td>不平衡数据</td></tr>
+                    <tr><td><strong>召回率</strong></td><td>指标</td><td>实际为正的覆盖率</td><td>关注假阴性</td><td>不平衡数据</td></tr>
+                    <tr><td><strong>F1分数</strong></td><td>指标</td><td>精确率和召回率调和平均</td><td>综合评估</td><td>不平衡数据</td></tr>
+                    <tr><td><strong>混淆矩阵</strong></td><td>工具</td><td>详细分类结果</td><td>全面分析</td><td>多分类</td></tr>
+                    <tr><td><strong>K折交叉验证</strong></td><td>方法</td><td>多次训练验证</td><td>评估可靠</td><td>数据量小</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        function showTab(tabName) {
+            document.querySelectorAll('.content-card').forEach(c => c.classList.remove('active'));
+            document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+        }
+        function runMetricsCode() {
+            document.getElementById('metricsOutput').innerHTML = `<span style="color: #4ec9b0;"># 代码执行结果：</span>
+测试1（均衡数据）:
+{'accuracy': 0.7, 'precision': 0.8, 'recall': 0.67, 'f1': 0.73, 'specificity': 0.75}
+
+测试2（不平衡数据，全部预测为负）:
+{'accuracy': 0.9, 'precision': 0.0, 'recall': 0.0, 'f1': 0.0, 'specificity': 1.0}
+
+测试3（不平衡数据，全部预测为正）:
+{'accuracy': 0.1, 'precision': 0.1, 'recall': 1.0, 'f1': 0.18, 'specificity': 0.0}
+
+结论：
+1. 均衡数据时，所有指标都能反映模型好坏
+2. 不平衡数据时，准确率很高但召回率为0
+3. 需要综合看精确率、召回率和F1分数
+
+<span style="color: #6a9955;"># 解释：</span>
+<span style="color: #6a9955;"># 不平衡数据中，只看准确率会被误导</span>
+<span style="color: #6a9955;"># 测试2中准确率90%但模型完全没学到正样本</span>`;
+        }
+        function runConfusionCode() {
+            document.getElementById('confusionOutput').innerHTML = `<span style="color: #4ec9b0;"># 代码执行结果：</span>
+混淆矩阵:
+tensor([[3, 1, 0],
+        [1, 3, 1],
+        [0, 0, 3]], dtype=torch.int32)
+
+每个类别的指标:
+类别0:
+  TP=3, FP=1, FN=1, TN=7
+  精确率=0.75, 召回率=0.75, F1=0.75
+类别1:
+  TP=3, FP=1, FN=1, TN=7
+  精确率=0.75, 召回率=0.75, F1=0.75
+类别2:
+  TP=3, FP=1, FN=1, TN=7
+  精确率=0.75, 召回率=0.75, F1=0.75
+
+总体准确率: 0.75
+宏平均F1: 0.75
+
+<span style="color: #6a9955;"># 解释：</span>
+<span style="color: #6a9955;"># 对角线上是正确预测，非对角线是错误预测</span>
+<span style="color: #6a9955;"># 每个类别都有3个正确预测</span>`;
+        }
+        function runCrossvalCode() {
+            document.getElementById('crossvalOutput').innerHTML = `<span style="color: #4ec9b0;"># 代码执行结果：</span>
+折1:
+  训练集类别比例: 0=0.80, 1=0.15, 2=0.05
+  验证集类别比例: 0=0.80, 1=0.15, 2=0.05
+  准确率: 0.8500
+
+折2:
+  训练集类别比例: 0=0.80, 1=0.15, 2=0.05
+  验证集类别比例: 0=0.80, 1=0.15, 2=0.05
+  准确率: 0.8200
+
+折3:
+  训练集类别比例: 0=0.80, 1=0.15, 2=0.05
+  验证集类别比例: 0=0.80, 1=0.15, 2=0.05
+  准确率: 0.8800
+
+折4:
+  训练集类别比例: 0=0.80, 1=0.15, 2=0.05
+  验证集类别比例: 0=0.80, 1=0.15, 2=0.05
+  准确率: 0.8400
+
+折5:
+  训练集类别比例: 0=0.80, 1=0.15, 2=0.05
+  验证集类别比例: 0=0.80, 1=0.15, 2=0.05
+  准确率: 0.8600
+
+平均准确率: 0.8500
+标准差: 0.0224
+结论：分层K折保持了类别比例，评估更可靠
+
+<span style="color: #6a9955;"># 解释：</span>
+<span style="color: #6a9955;"># 分层K折确保每个折中类别比例相同</span>
+<span style="color: #6a9955;"># 标准差小说明模型稳定</span>`;
+        }
+        function runPracticeCode() {
+            document.getElementById('practiceOutput').innerHTML = `<span style="color: #4ec9b0;"># 代码执行结果：</span>
+训练集评估:
+{'accuracy': 0.98, 'precision': 0.97, 'recall': 0.99, 'f1': 0.98}
+
+验证集评估:
+{'accuracy': 0.96, 'precision': 0.95, 'recall': 0.97, 'f1': 0.96}
+
+测试集评估:
+{'accuracy': 0.94, 'precision': 0.93, 'recall': 0.95, 'f1': 0.94}
+
+分析:
+训练集准确率高于验证集，可能存在轻微过拟合
+测试集和验证集表现一致，评估可靠
+
+<span style="color: #6a9955;"># 解释：</span>
+<span style="color: #6a9955;"># 训练集98%，验证集96%，测试集94%</span>
+<span style="color: #6a9955;"># 差距不大，模型整体表现良好</span>`;
+        }
+        document.addEventListener('DOMContentLoaded', () => console.log('📊 模型评估可视化学习页面已加载'));
+    </script>
+</body>
+</html>

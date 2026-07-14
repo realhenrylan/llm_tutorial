@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>04. Python配置与I/O模式可视化学习</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            padding: 40px 20px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .nav-tabs {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .nav-tab {
+            padding: 12px 24px;
+            background: rgba(255,255,255,0.2);
+            border: 2px solid white;
+            color: white;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1em;
+            font-weight: bold;
+        }
+
+        .nav-tab:hover {
+            background: white;
+            color: #667eea;
+        }
+
+        .nav-tab.active {
+            background: white;
+            color: #667eea;
+        }
+
+        .content-card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            display: none;
+        }
+
+        .content-card.active {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .concept-box {
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            border-left: 5px solid #667eea;
+        }
+
+        .concept-box h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .concept-box p {
+            line-height: 1.8;
+            color: #555;
+            margin-bottom: 10px;
+        }
+
+        .visual-demo {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            border: 2px solid #e9ecef;
+        }
+
+        .visual-demo h4 {
+            color: #495057;
+            margin-bottom: 20px;
+            font-size: 1.1em;
+        }
+
+        .config-visual {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .config-box {
+            border: 3px solid #667eea;
+            border-radius: 15px;
+            padding: 20px;
+            min-width: 350px;
+            text-align: left;
+            background: white;
+            animation: slideIn 0.5s ease;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: scale(0.8); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .config-name {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .config-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .config-key {
+            color: #666;
+        }
+
+        .config-value {
+            color: #28a745;
+            font-weight: bold;
+        }
+
+        .config-override {
+            color: #dc3545;
+        }
+
+        .io-visual {
+            display: flex;
+            gap: 30px;
+            justify-content: center;
+            align-items: flex-start;
+            flex-wrap: wrap;
+        }
+
+        .io-box {
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 15px;
+            padding: 20px;
+            min-width: 200px;
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+
+        .io-box:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .io-icon {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .io-title {
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .file-visual {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .file-box {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 20px 30px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            min-width: 300px;
+        }
+
+        .file-line {
+            margin: 5px 0;
+        }
+
+        .file-key {
+            color: #9cdcfe;
+        }
+
+        .file-string {
+            color: #ce9178;
+        }
+
+        .file-number {
+            color: #b5cea8;
+        }
+
+        .practice-area {
+            background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
+            border-radius: 15px;
+            padding: 25px;
+            margin-top: 25px;
+        }
+
+        .practice-area h4 {
+            color: #1976d2;
+            margin-bottom: 15px;
+        }
+
+        .code-input {
+            width: 100%;
+            min-height: 120px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.95em;
+            resize: vertical;
+            margin-bottom: 15px;
+        }
+
+        .run-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: bold;
+            transition: transform 0.2s;
+        }
+
+        .run-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .output-area {
+            background: #1e1e1e;
+            color: #4ec9b0;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 15px;
+            font-family: 'Courier New', monospace;
+            min-height: 80px;
+            white-space: pre-wrap;
+        }
+
+        .tip-box {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .tip-box::before {
+            content: "💡";
+            font-size: 1.5em;
+        }
+
+        .tip-box p {
+            margin: 0;
+            color: #856404;
+        }
+
+        .compare-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .compare-table th {
+            background: #667eea;
+            color: white;
+            padding: 15px;
+            text-align: left;
+        }
+
+        .compare-table td {
+            padding: 15px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .compare-table tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8em;
+            }
+            .nav-tab {
+                padding: 10px 18px;
+                font-size: 0.9em;
+            }
+            .content-card {
+                padding: 20px;
+            }
+            .config-box {
+                min-width: 280px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>⚙️ Python配置与I/O模式可视化学习</h1>
+            <p>零基础也能轻松理解配置管理和文件操作</p>
+        </div>
+
+        <div class="nav-tabs">
+            <button class="nav-tab active" onclick="showTab('config')">📋 配置管理</button>
+            <button class="nav-tab" onclick="showTab('yaml')">📝 YAML配置</button>
+            <button class="nav-tab" onclick="showTab('io')">📁 文件I/O</button>
+            <button class="nav-tab" onclick="showTab('temp')">🧹 临时资源</button>
+        </div>
+
+        <div id="config" class="content-card active">
+            <div class="concept-box">
+                <h3>📋 配置管理是什么？</h3>
+                <p><strong>通俗理解：</strong>配置管理就像给模型准备一张清单，把所有需要的参数都写清楚，不用每次都重新设置。</p>
+                <p><strong>在LLM中的作用：</strong>用来管理模型参数、训练超参数、数据路径等，保证实验的可复现性。</p>
+            </div>
+
+            <div class="visual-demo">
+                <h4>🎨 可视化演示：配置合并过程</h4>
+                <div class="config-visual">
+                    <div class="config-box">
+                        <div class="config-name">📋 基础配置 (base_config)</div>
+                        <div class="config-item"><span class="config-key">model_name</span><span class="config-value">TinyLM</span></div>
+                        <div class="config-item"><span class="config-key">precision</span><span class="config-value">bf16</span></div>
+                        <div class="config-item"><span class="config-key">batch_size</span><span class="config-value">4</span></div>
+                    </div>
+                    <div style="font-size: 2em; color: #667eea;">➕</div>
+                    <div class="config-box">
+                        <div class="config-name">🔧 覆盖配置 (overrides)</div>
+                        <div class="config-item"><span class="config-key">precision</span><span class="config-override">fp16</span></div>
+                        <div class="config-item"><span class="config-key">batch_size</span><span class="config-override">8</span></div>
+                    </div>
+                    <div style="font-size: 2em; color: #667eea;">➡️</div>
+                    <div class="config-box">
+                        <div class="config-name">✅ 最终配置 (merged)</div>
+                        <div class="config-item"><span class="config-key">model_name</span><span class="config-value">TinyLM</span></div>
+                        <div class="config-item"><span class="config-key">precision</span><span class="config-override">fp16</span></div>
+                        <div class="config-item"><span class="config-key">batch_size</span><span class="config-override">8</span></div>
+                    </div>
+                </div>
+                <div class="tip-box">
+                    <p>覆盖配置会替换基础配置中的同名参数，其他参数保持不变！</p>
+                </div>
+            </div>
+
+            <div class="visual-demo">
+                <h4>📝 代码示例</h4>
+                <pre style="background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 10px; overflow-x: auto;">
+<span style="color: #6a9955"># 配置合并函数</span>
+<span style="color: #569cd6">def</span> <span style="color: #dcdcaa">merge_model_config</span>(base_config, overrides):
+    merged = base_config.copy()
+    merged.update(overrides)
+    <span style="color: #c586c0">return</span> merged
+
+<span style="color: #6a9955"># 使用配置</span>
+base_config = {
+    <span style="color: #ce9178">'model_name'</span>: <span style="color: #ce9178">'TinyLM'</span>,
+    <span style="color: #ce9178">'precision'</span>: <span style="color: #ce9178">'bf16'</span>,
+    <span style="color: #ce9178">'batch_size'</span>: <span style="color: #b5cea8">4</span>
+}
+
+overrides = {
+    <span style="color: #ce9178">'precision'</span>: <span style="color: #ce9178">'fp16'</span>,
+    <span style="color: #ce9178">'batch_size'</span>: <span style="color: #b5cea8">8</span>
+}
+
+final_config = merge_model_config(base_config, overrides)
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"最终配置："</span>, final_config)</pre>
+            </div>
+
+            <div class="practice-area">
+                <h4>✏️ 动手练习：配置合并</h4>
+                <textarea class="code-input" id="configCode" placeholder="def merge_config(base, overrides):
+    result = base.copy()
+    result.update(overrides)
+    return result
+
+base = {'lr': 0.001, 'epochs': 3, 'batch_size': 32}
+overrides = {'lr': 0.0001, 'batch_size': 64}
+merged = merge_config(base, overrides)
+print(merged)">def merge_config(base, overrides):
+    result = base.copy()
+    result.update(overrides)
+    return result
+
+base = {'lr': 0.001, 'epochs': 3, 'batch_size': 32}
+overrides = {'lr': 0.0001, 'batch_size': 64}
+merged = merge_config(base, overrides)
+print(merged)</textarea>
+                <button class="run-btn" onclick="runConfigCode()">▶️ 运行代码</button>
+                <div class="output-area" id="configOutput">点击"运行代码"查看结果...</div>
+            </div>
+        </div>
+
+        <div id="yaml" class="content-card">
+            <div class="concept-box">
+                <h3>📝 YAML配置是什么？</h3>
+                <p><strong>通俗理解：</strong>YAML就像一种更易读的配置文件格式，用缩进表示层级关系，比JSON更友好。</p>
+                <p><strong>在LLM中的作用：</strong>用来存储实验配置、超参数等，方便人类阅读和修改。</p>
+            </div>
+
+            <div class="visual-demo">
+                <h4>🎨 可视化演示：YAML文件结构</h4>
+                <div class="file-visual">
+                    <div class="file-box">
+                        <div class="file-line"><span class="file-key"># model_config.yaml</span></div>
+                        <div class="file-line"></div>
+                        <div class="file-line"><span class="file-key">model</span>:</div>
+                        <div class="file-line">  <span class="file-key">name</span>: <span class="file-string">TinyLM</span></div>
+                        <div class="file-line">  <span class="file-key">precision</span>: <span class="file-string">bf16</span></div>
+                        <div class="file-line">  <span class="file-key">hidden_size</span>: <span class="file-number">64</span></div>
+                        <div class="file-line"></div>
+                        <div class="file-line"><span class="file-key">training</span>:</div>
+                        <div class="file-line">  <span class="file-key">lr</span>: <span class="file-number">0.001</span></div>
+                        <div class="file-line">  <span class="file-key">batch_size</span>: <span class="file-number">32</span></div>
+                        <div class="file-line">  <span class="file-key">epochs</span>: <span class="file-number">3</span></div>
+                    </div>
+                </div>
+                <div class="tip-box">
+                    <p>YAML使用缩进表示层级，冒号后面要有空格，字符串不需要引号！</p>
+                </div>
+            </div>
+
+            <div class="visual-demo">
+                <h4>📝 代码示例</h4>
+                <pre style="background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 10px; overflow-x: auto;">
+<span style="color: #6a9955"># 读取YAML配置</span>
+<span style="color: #c586c0">import</span> <span style="color: #9cdcfe">yaml</span>
+
+<span style="color: #569cd6">def</span> <span style="color: #dcdcaa">load_config</span>(config_path):
+    <span style="color: #c586c0">with</span> <span style="color: #dcdcaa">open</span>(config_path, <span style="color: #ce9178">'r'</span>) <span style="color: #c586c0">as</span> f:
+        <span style="color: #c586c0">return</span> yaml.safe_load(f)
+
+<span style="color: #6a9955"># 保存YAML配置</span>
+<span style="color: #569cd6">def</span> <span style="color: #dcdcaa">save_config</span>(config, config_path):
+    <span style="color: #c586c0">with</span> <span style="color: #dcdcaa">open</span>(config_path, <span style="color: #ce9178">'w'</span>) <span style="color: #c586c0">as</span> f:
+        yaml.dump(config, f, default_flow_style=<span style="color: #569cd6">False</span>)
+
+<span style="color: #6a9955"># 使用示例</span>
+config = {
+    <span style="color: #ce9178">'model'</span>: {<span style="color: #ce9178">'name'</span>: <span style="color: #ce9178">'TinyLM'</span>, <span style="color: #ce9178">'hidden_size'</span>: <span style="color: #b5cea8">64</span>},
+    <span style="color: #ce9178">'training'</span>: {<span style="color: #ce9178">'lr'</span>: <span style="color: #b5cea8">0.001</span>, <span style="color: #ce9178">'epochs'</span>: <span style="color: #b5cea8">3</span>}
+}
+save_config(config, <span style="color: #ce9178">'config.yaml'</span>)
+loaded = load_config(<span style="color: #ce9178">'config.yaml'</span>)
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"加载的配置："</span>, loaded)</pre>
+            </div>
+
+            <div class="practice-area">
+                <h4>✏️ 动手练习：YAML读写</h4>
+                <textarea class="code-input" id="yamlCode" placeholder="import yaml
+
+config = {
+    'model': {'name': 'MyModel', 'layers': 4},
+    'train': {'lr': 0.001, 'batch_size': 16}
+}
+
+with open('test_config.yaml', 'w') as f:
+    yaml.dump(config, f, default_flow_style=False)
+
+with open('test_config.yaml', 'r') as f:
+    loaded = yaml.safe_load(f)
+
+print(loaded)">import yaml
+
+config = {
+    'model': {'name': 'MyModel', 'layers': 4},
+    'train': {'lr': 0.001, 'batch_size': 16}
+}
+
+with open('test_config.yaml', 'w') as f:
+    yaml.dump(config, f, default_flow_style=False)
+
+with open('test_config.yaml', 'r') as f:
+    loaded = yaml.safe_load(f)
+
+print(loaded)</textarea>
+                <button class="run-btn" onclick="runYamlCode()">▶️ 运行代码</button>
+                <div class="output-area" id="yamlOutput">点击"运行代码"查看结果...</div>
+            </div>
+        </div>
+
+        <div id="io" class="content-card">
+            <div class="concept-box">
+                <h3>📁 文件I/O是什么？</h3>
+                <p><strong>通俗理解：</strong>文件I/O就是和文件打交道，包括读取文件内容、写入文件、创建文件等操作。</p>
+                <p><strong>在LLM中的作用：</strong>用来读取数据集、保存模型权重、记录训练日志等。</p>
+            </div>
+
+            <div class="visual-demo">
+                <h4>🎨 可视化演示：文件操作流程</h4>
+                <div class="io-visual">
+                    <div class="io-box">
+                        <div class="io-icon">📄</div>
+                        <div class="io-title">文件</div>
+                        <div style="font-size: 0.85em; color: #666; margin-top: 5px;">data.txt</div>
+                    </div>
+                    <div style="font-size: 2em; color: #667eea; margin-top: 25px;">→</div>
+                    <div class="io-box" style="background: #e3f2fd; border-color: #1976d2;">
+                        <div class="io-icon">📖</div>
+                        <div class="io-title">读取</div>
+                        <div style="font-size: 0.85em; color: #666; margin-top: 5px;">read_text()</div>
+                    </div>
+                    <div style="font-size: 2em; color: #667eea; margin-top: 25px;">→</div>
+                    <div class="io-box" style="background: #fff3cd; border-color: #ffc107;">
+                        <div class="io-icon">🧠</div>
+                        <div class="io-title">内存</div>
+                        <div style="font-size: 0.85em; color: #666; margin-top: 5px;">变量/字符串</div>
+                    </div>
+                    <div style="font-size: 2em; color: #667eea; margin-top: 25px;">→</div>
+                    <div class="io-box" style="background: #e8f5e9; border-color: #4caf50;">
+                        <div class="io-icon">✏️</div>
+                        <div class="io-title">写入</div>
+                        <div style="font-size: 0.85em; color: #666; margin-top: 5px;">write_text()</div>
+                    </div>
+                    <div style="font-size: 2em; color: #667eea; margin-top: 25px;">→</div>
+                    <div class="io-box">
+                        <div class="io-icon">📄</div>
+                        <div class="io-title">文件</div>
+                        <div style="font-size: 0.85em; color: #666; margin-top: 5px;">output.txt</div>
+                    </div>
+                </div>
+                <div class="tip-box">
+                    <p>使用with语句可以自动管理文件的打开和关闭！</p>
+                </div>
+            </div>
+
+            <div class="visual-demo">
+                <h4>📝 代码示例</h4>
+                <pre style="background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 10px; overflow-x: auto;">
+<span style="color: #6a9955"># 使用pathlib进行文件操作</span>
+<span style="color: #c586c0">from</span> pathlib <span style="color: #c586c0">import</span> Path
+
+<span style="color: #6a9955"># 创建Path对象</span>
+data_dir = Path(<span style="color: #ce9178">'./data'</span>)
+data_file = data_dir / <span style="color: #ce9178">'train.txt'</span>
+
+<span style="color: #6a9955"># 确保目录存在</span>
+data_dir.mkdir(exist_ok=<span style="color: #569cd6">True</span>)
+
+<span style="color: #6a9955"># 写入文件</span>
+data_file.write_text(<span style="color: #ce9178">'Hello, LLM World!'</span>, encoding=<span style="color: #ce9178">'utf-8'</span>)
+
+<span style="color: #6a9955"># 读取文件</span>
+content = data_file.read_text(encoding=<span style="color: #ce9178">'utf-8'</span>)
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"文件内容："</span>, content)
+
+<span style="color: #6a9955"># 检查文件是否存在</span>
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"文件存在："</span>, data_file.exists())</pre>
+            </div>
+
+            <div class="practice-area">
+                <h4>✏️ 动手练习：文件操作</h4>
+                <textarea class="code-input" id="ioCode" placeholder="from pathlib import Path
+
+# 创建目录
+output_dir = Path('./output')
+output_dir.mkdir(exist_ok=True)
+
+# 写入文件
+output_file = output_dir / 'result.txt'
+output_file.write_text('训练完成！\\nloss: 0.1234', encoding='utf-8')
+
+# 读取文件
+content = output_file.read_text(encoding='utf-8')
+print(content)
+
+# 打印文件路径
+print('文件路径:', output_file.resolve())">from pathlib import Path
+
+output_dir = Path('./output')
+output_dir.mkdir(exist_ok=True)
+
+output_file = output_dir / 'result.txt'
+output_file.write_text('训练完成！\nloss: 0.1234', encoding='utf-8')
+
+content = output_file.read_text(encoding='utf-8')
+print(content)
+
+print('文件路径:', output_file.resolve())</textarea>
+                <button class="run-btn" onclick="runIoCode()">▶️ 运行代码</button>
+                <div class="output-area" id="ioOutput">点击"运行代码"查看结果...</div>
+            </div>
+        </div>
+
+        <div id="temp" class="content-card">
+            <div class="concept-box">
+                <h3>🧹 临时资源管理是什么？</h3>
+                <p><strong>通俗理解：</strong>临时资源管理就像租了一个临时仓库，用完自动归还，不用自己打扫。</p>
+                <p><strong>在LLM中的作用：</strong>用来管理临时文件、临时目录，确保实验结束后自动清理，避免残留文件。</p>
+            </div>
+
+            <div class="visual-demo">
+                <h4>🎨 可视化演示：临时目录的生命周期</h4>
+                <div class="config-visual">
+                    <div class="config-box" style="border-color: #28a745;">
+                        <div class="config-name">🟢 进入 with 块</div>
+                        <div style="font-size: 0.9em; color: #666; margin-top: 10px;">
+                            • 创建临时目录<br>
+                            • 目录可用<br>
+                            • 可以读写文件
+                        </div>
+                    </div>
+                    <div style="font-size: 2em; color: #28a745;">↓</div>
+                    <div class="config-box" style="border-color: #dc3545;">
+                        <div class="config-name">🔴 离开 with 块</div>
+                        <div style="font-size: 0.9em; color: #666; margin-top: 10px;">
+                            • 自动删除临时目录<br>
+                            • 目录不可用<br>
+                            • 所有文件被清理
+                        </div>
+                    </div>
+                </div>
+                <div class="tip-box">
+                    <p>临时目录在with块结束后会自动清理，非常适合存放一次性的中间文件！</p>
+                </div>
+            </div>
+
+            <div class="visual-demo">
+                <h4>📝 代码示例</h4>
+                <pre style="background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 10px; overflow-x: auto;">
+<span style="color: #6a9955"># 使用临时目录</span>
+<span style="color: #c586c0">from</span> pathlib <span style="color: #c586c0">import</span> Path
+<span style="color: #c586c0">from</span> tempfile <span style="color: #c586c0">import</span> TemporaryDirectory
+
+<span style="color: #6a9955"># with语句自动管理生命周期</span>
+<span style="color: #c586c0">with</span> TemporaryDirectory() <span style="color: #c586c0">as</span> tmpdir:
+    root = Path(tmpdir)
+    report = root / <span style="color: #ce9178">'report.txt'</span>
+    report.write_text(<span style="color: #ce9178">'hello io'</span>, encoding=<span style="color: #ce9178">'utf-8'</span>)
+    <span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">'临时文件路径：'</span>, report)
+    <span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">'临时文件内容：'</span>, report.read_text(encoding=<span style="color: #ce9178">'utf-8'</span>))
+
+<span style="color: #6a9955"># with块结束后，临时目录自动清理</span>
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">'✅ with 收尾完成'</span>)</pre>
+            </div>
+
+            <div class="practice-area">
+                <h4>✏️ 动手练习：临时目录</h4>
+                <textarea class="code-input" id="tempCode" placeholder="from tempfile import TemporaryDirectory
+from pathlib import Path
+
+with TemporaryDirectory() as tmpdir:
+    tmp_path = Path(tmpdir)
+    data_file = tmp_path / 'temp_data.txt'
+    data_file.write_text('这是临时数据', encoding='utf-8')
+    
+    content = data_file.read_text(encoding='utf-8')
+    print('临时文件内容:', content)
+    print('临时目录:', tmpdir)
+
+print('临时目录已自动清理')">from tempfile import TemporaryDirectory
+from pathlib import Path
+
+with TemporaryDirectory() as tmpdir:
+    tmp_path = Path(tmpdir)
+    data_file = tmp_path / 'temp_data.txt'
+    data_file.write_text('这是临时数据', encoding='utf-8')
+    
+    content = data_file.read_text(encoding='utf-8')
+    print('临时文件内容:', content)
+    print('临时目录:', tmpdir)
+
+print('临时目录已自动清理')</textarea>
+                <button class="run-btn" onclick="runTempCode()">▶️ 运行代码</button>
+                <div class="output-area" id="tempOutput">点击"运行代码"查看结果...</div>
+            </div>
+        </div>
+
+        <div class="content-card" style="display: block;">
+            <h3 style="text-align: center; margin-bottom: 20px; color: #667eea;">⚙️ 配置与I/O核心概念对比</h3>
+            <table class="compare-table">
+                <thead>
+                    <tr>
+                        <th style="width: 15%;">特性</th>
+                        <th style="width: 20%;">配置管理</th>
+                        <th style="width: 20%;">YAML配置</th>
+                        <th style="width: 20%;">文件I/O</th>
+                        <th style="width: 20%;">临时资源</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>作用</strong></td>
+                        <td>管理参数</td>
+                        <td>存储配置</td>
+                        <td>读写文件</td>
+                        <td>临时存储</td>
+                    </tr>
+                    <tr>
+                        <td><strong>核心概念</strong></td>
+                        <td>合并、覆盖</td>
+                        <td>缩进、层级</td>
+                        <td>pathlib</td>
+                        <td>自动清理</td>
+                    </tr>
+                    <tr>
+                        <td><strong>类比</strong></td>
+                        <td>清单</td>
+                        <td>说明书</td>
+                        <td>文件柜</td>
+                        <td>临时仓库</td>
+                    </tr>
+                    <tr>
+                        <td><strong>LLM应用</strong></td>
+                        <td>超参数管理</td>
+                        <td>实验配置</td>
+                        <td>数据集读取</td>
+                        <td>中间文件</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        function showTab(tabName) {
+            const cards = document.querySelectorAll('.content-card');
+            cards.forEach(card => card.classList.remove('active'));
+            const tabs = document.querySelectorAll('.nav-tab');
+            tabs.forEach(tab => tab.classList.remove('active'));
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        function runConfigCode() {
+            const output = document.getElementById('configOutput');
+            output.innerHTML = `<span style="color: #4ec9b0;"># 代码执行结果：</span>
+{'lr': 0.0001, 'epochs': 3, 'batch_size': 64}
+
+<span style="color: #6a9955;"># 解释：</span>
+<span style="color: #6a9955;"># lr 和 batch_size 被覆盖</span>
+<span style="color: #6a9955;"># epochs 保持原值不变</span>
+<span style="color: #6a9955;"># 使用 copy() 避免修改原字典</span>`;
+        }
+
+        function runYamlCode() {
+            const output = document.getElementById('yamlOutput');
+            output.innerHTML = `<span style="color: #4ec9b0;"># 代码执行结果：</span>
+{'model': {'name': 'MyModel', 'layers': 4}, 'train': {'lr': 0.001, 'batch_size': 16}}
+
+<span style="color: #6a9955;"># 解释：</span>
+<span style="color: #6a9955;"># yaml.dump() 将字典转为YAML格式</span>
+<span style="color: #6a9955;"># yaml.safe_load() 将YAML转为字典</span>
+<span style="color: #6a9955;"># default_flow_style=False 让输出更易读</span>`;
+        }
+
+        function runIoCode() {
+            const output = document.getElementById('ioOutput');
+            output.innerHTML = `<span style="color: #4ec9b0;"># 代码执行结果：</span>
+训练完成！
+loss: 0.1234
+文件路径: /当前目录/output/result.txt
+
+<span style="color: #6a9955;"># 解释：</span>
+<span style="color: #6a9955;"># mkdir(exist_ok=True) 避免目录已存在时报错</span>
+<span style="color: #6a9955;"># / 操作符用来拼接路径</span>
+<span style="color: #6a9955;"># resolve() 返回绝对路径</span>`;
+        }
+
+        function runTempCode() {
+            const output = document.getElementById('tempOutput');
+            output.innerHTML = `<span style="color: #4ec9b0;"># 代码执行结果：</span>
+临时文件内容: 这是临时数据
+临时目录: /tmp/xxxxxx
+临时目录已自动清理
+
+<span style="color: #6a9955;"># 解释：</span>
+<span style="color: #6a9955;"># TemporaryDirectory() 创建临时目录</span>
+<span style="color: #6a9955;"># with块结束后自动删除</span>
+<span style="color: #6a9955;"># 适合存放一次性中间文件</span>`;
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('⚙️ Python配置与I/O模式可视化学习页面已加载');
+        });
+    </script>
+</body>
+</html>

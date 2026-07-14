@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>17. PyTorch调试技巧可视化学习</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif; background: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%); min-height: 100vh; color: #333; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .header { text-align: center; padding: 40px 20px; color: white; }
+        .header h1 { font-size: 2.5em; margin-bottom: 10px; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); }
+        .header p { font-size: 1.2em; opacity: 0.9; }
+        .nav-tabs { display: flex; justify-content: center; gap: 10px; margin-bottom: 30px; flex-wrap: wrap; }
+        .nav-tab { padding: 12px 24px; background: rgba(255,255,255,0.2); border: 2px solid white; color: white; border-radius: 25px; cursor: pointer; transition: all 0.3s ease; font-size: 1em; font-weight: bold; }
+        .nav-tab:hover { background: white; color: #a18cd1; }
+        .nav-tab.active { background: white; color: #a18cd1; }
+        .content-card { background: white; border-radius: 20px; padding: 30px; margin-bottom: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); display: none; }
+        .content-card.active { display: block; animation: fadeIn 0.5s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .concept-box { background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%); border-radius: 15px; padding: 25px; margin-bottom: 25px; border-left: 5px solid #a18cd1; }
+        .concept-box h3 { color: #a18cd1; margin-bottom: 15px; font-size: 1.3em; }
+        .concept-box p { line-height: 1.8; color: #555; margin-bottom: 10px; }
+        .visual-demo { background: #f8f9fa; border-radius: 15px; padding: 25px; margin-bottom: 25px; border: 2px solid #e9ecef; }
+        .visual-demo h4 { color: #495057; margin-bottom: 20px; font-size: 1.1em; }
+        .debug-visual { display: flex; flex-direction: column; align-items: center; gap: 20px; }
+        .debug-box { border: 3px solid #a18cd1; border-radius: 15px; padding: 20px; min-width: 300px; text-align: center; background: white; animation: slideIn 0.5s ease; }
+        @keyframes slideIn { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: scale(1); } }
+        .debug-name { font-size: 1.2em; font-weight: bold; color: #a18cd1; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid #e9ecef; }
+        .practice-area { background: linear-gradient(135deg, #f3e5f5 0%, #e3f2fd 100%); border-radius: 15px; padding: 25px; margin-top: 25px; }
+        .practice-area h4 { color: #7b1fa2; margin-bottom: 15px; }
+        .code-input { width: 100%; min-height: 120px; border: 2px solid #ddd; border-radius: 10px; padding: 15px; font-family: 'Courier New', monospace; font-size: 0.95em; resize: vertical; margin-bottom: 15px; }
+        .run-btn { background: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%); color: white; border: none; padding: 12px 30px; border-radius: 25px; cursor: pointer; font-size: 1em; font-weight: bold; transition: transform 0.2s; }
+        .run-btn:hover { transform: scale(1.05); }
+        .output-area { background: #1e1e1e; color: #4ec9b0; border-radius: 10px; padding: 15px; margin-top: 15px; font-family: 'Courier New', monospace; min-height: 80px; white-space: pre-wrap; }
+        .tip-box { background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 10px; padding: 15px; margin: 15px 0; display: flex; align-items: flex-start; gap: 10px; }
+        .tip-box::before { content: "💡"; font-size: 1.5em; }
+        .tip-box p { margin: 0; color: #856404; }
+        .compare-table { width: 100%; border-collapse: collapse; margin: 20px 0; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,1); }
+        .compare-table th { background: #a18cd1; color: white; padding: 15px; text-align: left; }
+        .compare-table td { padding: 15px; border-bottom: 1px solid #e9ecef; }
+        .compare-table tr:nth-child(even) { background: #f8f9fa; }
+        .debug-diagram { display: flex; justify-content: center; align-items: center; gap: 20px; flex-wrap: wrap; }
+        .debug-item { text-align: center; padding: 15px; background: #f3e5f5; border-radius: 10px; min-width: 120px; }
+        .debug-icon { font-size: 2em; margin-bottom: 5px; }
+        .debug-name-text { font-weight: bold; color: #a18cd1; }
+        @media (max-width: 768px) { .header h1 { font-size: 1.8em; } .nav-tab { padding: 10px 18px; font-size: 0.9em; } .content-card { padding: 20px; } .debug-box { min-width: 280px; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔍 PyTorch调试技巧可视化学习</h1>
+            <p>零基础也能轻松理解常见错误和调试方法</p>
+        </div>
+
+        <div class="nav-tabs">
+            <button class="nav-tab active" onclick="showTab('common')">❌ 常见错误</button>
+            <button class="nav-tab" onclick="showTab('debugtools')">🛠️ 调试工具</button>
+            <button class="nav-tab" onclick="showTab('checklist')">✅ 检查清单</button>
+            <button class="nav-tab" onclick="showTab('practice')">✏️ 实战练习</button>
+        </div>
+
+        <div id="common" class="content-card active">
+            <div class="concept-box">
+                <h3>❌ 常见错误有哪些？</h3>
+                <p><strong>通俗理解：</strong>编程就像开车，总会遇到各种问题。了解常见错误可以让你更快地找到问题所在。</p>
+                <p><strong>常见类型：</strong>维度不匹配、设备不一致、梯度为零、数据类型错误</p>
+            </div>
+
+            <div class="visual-demo">
+                <h4>🎨 可视化演示：常见错误类型</h4>
+                <div class="debug-diagram">
+                    <div class="debug-item">
+                        <div class="debug-icon">📐</div>
+                        <div class="debug-name-text">维度错误</div>
+                        <div style="font-size: 0.8em; color: #666;">形状不匹配</div>
+                    </div>
+                    <div class="debug-item">
+                        <div class="debug-icon">💻</div>
+                        <div class="debug-name-text">设备错误</div>
+                        <div style="font-size: 0.8em; color: #666;">CPU/GPU不匹配</div>
+                    </div>
+                    <div class="debug-item">
+                        <div class="debug-icon">📊</div>
+                        <div class="debug-name-text">梯度错误</div>
+                        <div style="font-size: 0.8em; color: #666;">梯度为零/NaN</div>
+                    </div>
+                    <div class="debug-item">
+                        <div class="debug-icon">📝</div>
+                        <div class="debug-name-text">类型错误</div>
+                        <div style="font-size: 0.8em; color: #666;">数据类型不兼容</div>
+                    </div>
+                </div>
+                <div class="tip-box">
+                    <p>遇到错误先看报错信息，通常会告诉你具体是哪里出了问题！</p>
+                </div>
+            </div>
+
+            <div class="visual-demo">
+                <h4>📝 代码示例：常见错误及解决方法</h4>
+                <pre style="background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 10px; overflow-x: auto;">
+<span style="color: #6a9955"># 常见错误及解决方法</span>
+<span style="color: #c586c0">import</span> <span style="color: #9cdcfe">torch</span>
+<span style="color: #c586c0">import</span> <span style="color: #9cdcfe">torch.nn</span> <span style="color: #c586c0">as</span> <span style="color: #9cdcfe">nn</span>
+
+<span style="color: #6a9955"># 错误1：维度不匹配</span>
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"❌ 错误1：维度不匹配"</span>)
+model = nn.Linear(<span style="color: #b5cea8">10</span>, <span style="color: #b5cea8">1</span>)
+<span style="color: #569cd6">try</span>:
+    x = torch.randn(<span style="color: #b5cea8">32</span>, <span style="color: #b5cea8">20</span>)  <span style="color: #6a9955"># 输入维度是20，但模型期望10</span>
+    output = model(x)
+<span style="color: #569cd6">except</span> Exception <span style="color: #569cd6">as</span> e:
+    <span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"  错误信息:"</span>, str(e)[:<span style="color: #b5cea8">80</span>])
+    <span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"  ✅ 解决方法: 确保输入维度与模型匹配"</span>)
+
+<span style="color: #6a9955"># 错误2：设备不一致</span>
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"\n❌ 错误2：设备不一致"</span>)
+model = nn.Linear(<span style="color: #b5cea8">10</span>, <span style="color: #b5cea8">1</span>).to(<span style="color: #ce9178">'cuda'</span>) <span style="color: #6a9955"># 模型在GPU上</span>
+<span style="color: #569cd6">try</span>:
+    x = torch.randn(<span style="color: #b5cea8">32</span>, <span style="color: #b5cea8">10</span>)  <span style="color: #6a9955"># 数据在CPU上</span>
+    output = model(x)
+<span style="color: #569cd6">except</span> Exception <span style="color: #569cd6">as</span> e:
+    <span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"  错误信息:"</span>, str(e)[:<span style="color: #b5cea8">80</span>])
+    <span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"  ✅ 解决方法: 使用x.to('cuda')或model.to('cpu')"</span>)
+
+<span style="color: #6a9955"># 错误3：梯度为零</span>
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"\n❌ 错误3：梯度为零"</span>)
+x = torch.randn(<span style="color: #b5cea8">10</span>, requires_grad=<span style="color: #569cd6">True</span>)
+y = x.detach()  <span style="color: #6a9955"># 断开梯度追踪</span>
+y.backward()
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"  x.grad:"</span>, x.grad)
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"  ✅ 解决方法: 检查是否意外调用了detach()"</span>)
+
+<span style="color: #6a9955"># 错误4：数据类型错误</span>
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"\n❌ 错误4：数据类型错误"</span>)
+model = nn.Linear(<span style="color: #b5cea8">10</span>, <span style="color: #b5cea8">1</span>)
+<span style="color: #569cd6">try</span>:
+    x = torch.randn(<span style="color: #b5cea8">32</span>, <span style="color: #b5cea8">10</span>).int()  <span style="color: #6a9955"># 整型数据</span>
+    output = model(x)
+<span style="color: #569cd6">except</span> Exception <span style="color: #569cd6">as</span> e:
+    <span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"  错误信息:"</span>, str(e)[:<span style="color: #b5cea8">80</span>])
+    <span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"  ✅ 解决方法: 使用x.float()转换为浮点型"</span>)</pre>
+            </div>
+
+            <div class="practice-area">
+                <h4>✏️ 动手练习：识别常见错误</h4>
+                <textarea class="code-input" id="commonCode" placeholder="import torch
+import torch.nn as nn
+
+# 找出以下代码中的错误
+
+# 错误1：维度不匹配
+print('错误1:')
+model1 = nn.Sequential(
+    nn.Linear(20, 32),
+    nn.Linear(16, 8)  # 这里有问题！
+)
+x1 = torch.randn(10, 20)
+try:
+    output1 = model1(x1)
+    print('  没有错误')
+except Exception as e:
+    print(f'  错误: {str(e)[:60]}')
+    print('  修复方法: 将16改为32')
+
+# 错误2：设备不一致
+print('\n错误2:')
+model2 = nn.Linear(10, 1).to('cuda')
+x2 = torch.randn(32, 10)  # 数据在CPU上
+try:
+    output2 = model2(x2)
+    print('  没有错误')
+except Exception as e:
+    print(f'  错误: {str(e)[:60]}')
+    print('  修复方法: x2 = x2.to("cuda")')
+
+# 错误3：requires_grad设置
+print('\n错误3:')
+x3 = torch.randn(10)
+y3 = x3 * 2
+y3.backward()
+print(f'  x3.grad: {x3.grad}')
+print('  修复方法: x3 = torch.randn(10, requires_grad=True)')
+
+# 错误4：batchnorm使用
+print('\n错误4:')
+bn = nn.BatchNorm1d(10)
+x4 = torch.randn(5)  # 缺少batch维度
+try:
+    output4 = bn(x4)
+    print('  没有错误')
+except Exception as e:
+    print(f'  错误: {str(e)[:60]}')
+    print('  修复方法: x4 = torch.randn(1, 5)')
+
+# 错误5：损失函数使用
+print('\n错误5:')
+criterion = nn.CrossEntropyLoss()
+logits = torch.randn(32, 10)
+targets = torch.randn(32, 10)  # 应该是类别索引
+try:
+    loss = criterion(logits, targets)
+    print('  没有错误')
+except Exception as e:
+    print(f'  错误: {str(e)[:60]}')
+    print('  修复方法: targets = torch.randint(0, 10, (32,))')"></textarea>
+                <button class="run-btn" onclick="runCommonCode()">▶️ 运行代码</button>
+                <div class="output-area" id="commonOutput">点击"运行代码"查看结果...</div>
+            </div>
+        </div>
+
+        <div id="debugtools" class="content-card">
+            <div class="concept-box">
+                <h3>🛠️ 常用调试工具有哪些？</h3>
+                <p><strong>通俗理解：</strong>调试工具就像医生的听诊器，可以帮助你诊断模型的"健康状况"。</p>
+                <p><strong>常用工具：</strong>print、pdb、torchinfo、tensorboard、gradcheck</p>
+            </div>
+
+            <div class="visual-demo">
+                <h4>🎨 可视化演示：调试工具</h4>
+                <div class="debug-visual">
+                    <div class="debug-box">
+                        <div class="debug-name">🛠️ 调试工具一览</div>
+                        <div style="font-size: 0.9em; color: #666; text-align: left;">
+                            <div style="background: #e3f2fd; padding: 10px; margin: 5px 0; border-radius: 5px;">📝 <strong>print</strong>: 最简单直接，打印张量形状和值</div>
+                            <div style="background: #fff3cd; padding: 10px; margin: 5px 0; border-radius: 5px;">🔍 <strong>pdb</strong>: Python调试器，设置断点</div>
+                            <div style="background: #e8f5e9; padding: 10px; margin: 5px 0; border-radius: 5px;">📊 <strong>torchinfo</strong>: 打印模型结构和参数</div>
+                            <div style="background: #f8f0fe; padding: 10px; margin: 5px 0; border-radius: 5px;">📈 <strong>tensorboard</strong>: 可视化训练过程</div>
+                            <div style="background: #ffeaa7; padding: 10px; margin: 5px 0; border-radius: 5px;">🔧 <strong>gradcheck</strong>: 检查梯度计算是否正确</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="tip-box">
+                    <p>先用print定位问题，复杂问题用pdb，模型结构用torchinfo！</p>
+                </div>
+            </div>
+
+            <div class="visual-demo">
+                <h4>📝 代码示例：调试工具</h4>
+                <pre style="background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 10px; overflow-x: auto;">
+<span style="color: #6a9955"># 调试工具示例</span>
+<span style="color: #c586c0">import</span> <span style="color: #9cdcfe">torch</span>
+<span style="color: #c586c0">import</span> <span style="color: #9cdcfe">torch.nn</span> <span style="color: #c586c0">as</span> <span style="color: #9cdcfe">nn</span>
+
+<span style="color: #6a9955"># 1. 使用print调试</span>
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"🛠️ 调试工具1: print"</span>)
+x = torch.randn(<span style="color: #b5cea8">32</span>, <span style="color: #b5cea8">10</span>)
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"  x.shape:"</span>, x.shape)
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"  x.dtype:"</span>, x.dtype)
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"  x.device:"</span>, x.device)
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"  x.requires_grad:"</span>, x.requires_grad)
+
+<span style="color: #6a9955"># 2. 使用torchinfo查看模型</span>
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"\n🛠️ 调试工具2: torchinfo"</span>)
+<span style="color: #c586c0">try</span>:
+    <span style="color: #c586c0">from</span> <span style="color: #9cdcfe">torchinfo</span> <span style="color: #c586c0">import</span> summary
+    model = nn.Sequential(
+        nn.Linear(<span style="color: #b5cea8">10</span>, <span style="color: #b5cea8">32</span>),
+        nn.ReLU(),
+        nn.Linear(<span style="color: #b5cea8">32</span>, <span style="color: #b5cea8">1</span>)
+    )
+    <span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"  模型摘要已输出"</span>)
+<span style="color: #569cd6">except</span>:
+    <span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"  需要安装: pip install torchinfo"</span>)
+
+<span style="color: #6a9955"># 3. 使用gradcheck检查梯度</span>
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"\n🛠️ 调试工具3: gradcheck"</span>)
+<span style="color: #569cd6">def</span> <span style="color: #dcdcaa">my_func</span>(x):
+    <span style="color: #c586c0">return</span> x * x + <span style="color: #b5cea8">2</span> * x
+
+x = torch.randn(<span style="color: #b5cea8">10</span>, requires_grad=<span style="color: #569cd6">True</span>)
+from torch.autograd import gradcheck
+test = gradcheck(my_func, x, eps=<span style="color: #b5cea8">1e-6</span>, atol=<span style="color: #b5cea8">1e-4</span>)
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"  gradcheck通过:"</span>, test)
+
+<span style="color: #6a9955"># 4. 检查NaN和Inf</span>
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"\n🛠️ 调试工具4: 检查NaN/Inf"</span>)
+y = torch.tensor([<span style="color: #b5cea8">1.0</span>, <span style="color: #b5cea8">float('nan')</span>, <span style="color: #b5cea8">float('inf')</span>, <span style="color: #b5cea8">2.0</span>])
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"  has_nan:"</span>, torch.isnan(y).any())
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"  has_inf:"</span>, torch.isinf(y).any())
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"  清理后:"</span>, torch.nan_to_num(y))</pre>
+            </div>
+
+            <div class="practice-area">
+                <h4>✏️ 动手练习：使用调试工具</h4>
+                <textarea class="code-input" id="debugtoolsCode" placeholder="import torch
+import torch.nn as nn
+
+# 调试技巧1：打印中间结果
+def debug_model(model, x):
+    print('=== 调试信息 ===')
+    print(f'输入形状: {x.shape}')
+    print(f'输入设备: {x.device}')
+    
+    # 逐层打印
+    for i, layer in enumerate(model):
+        x = layer(x)
+        print(f'第{i+1}层 {layer.__class__.__name__}:')
+        print(f'  输出形状: {x.shape}')
+        print(f'  输出范围: [{x.min().item():.4f}, {x.max().item():.4f}]')
+        print(f'  是否有NaN: {torch.isnan(x).any().item()}')
+        print(f'  是否有Inf: {torch.isinf(x).any().item()}')
+    
+    return x
+
+# 测试调试函数
+model = nn.Sequential(
+    nn.Linear(10, 50),
+    nn.ReLU(),
+    nn.Linear(50, 20),
+    nn.ReLU(),
+    nn.Linear(20, 2)
+)
+
+x = torch.randn(32, 10)
+output = debug_model(model, x)
+
+# 调试技巧2：检查梯度
+print('\n=== 梯度检查 ===')
+x = torch.randn(10, requires_grad=True)
+y = model[0](x)
+z = y.sum()
+z.backward()
+
+print(f'输入梯度: {x.grad}')
+print(f'第一层权重梯度: {model[0].weight.grad}')
+print(f'梯度范数: {x.grad.norm().item()}')
+
+# 调试技巧3：模拟梯度消失
+print('\n=== 梯度消失模拟 ===')
+deep_model = nn.Sequential(*[nn.Linear(10, 10) for _ in range(20)])
+x = torch.randn(10, requires_grad=True)
+
+for i, layer in enumerate(deep_model):
+    x = layer(x)
+    x = torch.relu(x)
+
+x.sum().backward()
+
+# 检查梯度
+grad_norms = []
+for layer in deep_model:
+    if hasattr(layer, 'weight'):
+        grad_norms.append(layer.weight.grad.norm().item())
+
+print(f'梯度范数: {grad_norms}')
+print(f'最小梯度范数: {min(grad_norms)}')
+print(f'最大梯度范数: {max(grad_norms)}')
+
+if min(grad_norms) < 1e-10:
+    print('⚠️ 检测到梯度消失！')
+else:
+    print('✅ 梯度正常')"></textarea>
+                <button class="run-btn" onclick="runDebugtoolsCode()">▶️ 运行代码</button>
+                <div class="output-area" id="debugtoolsOutput">点击"运行代码"查看结果...</div>
+            </div>
+        </div>
+
+        <div id="checklist" class="content-card">
+            <div class="concept-box">
+                <h3>✅ 调试检查清单</h3>
+                <p><strong>通俗理解：</strong>检查清单就像登机前的安检，确保所有东西都准备好了。每次训练前都应该检查一遍。</p>
+                <p><strong>检查项目：</strong>数据加载、模型结构、损失函数、优化器、训练循环</p>
+            </div>
+
+            <div class="visual-demo">
+                <h4>🎨 可视化演示：调试检查清单</h4>
+                <div class="debug-visual">
+                    <div class="debug-box">
+                        <div class="debug-name">✅ 调试检查清单</div>
+                        <div style="font-size: 0.9em; color: #666; text-align: left;">
+                            <div style="background: #e8f5e9; padding: 10px; margin: 5px 0; border-radius: 5px;">📦 <strong>数据检查</strong>: 形状、类型、设备、范围</div>
+                            <div style="background: #e8f5e9; padding: 10px; margin: 5px 0; border-radius: 5px;">🧠 <strong>模型检查</strong>: 结构、参数数量、初始化</div>
+                            <div style="background: #e8f5e9; padding: 10px; margin: 5px 0; border-radius: 5px;">📉 <strong>损失检查</strong>: 类型、输入格式、数值范围</div>
+                            <div style="background: #e8f5e9; padding: 10px; margin: 5px 0; border-radius: 5px;">🚀 <strong>优化器检查</strong>: 参数、学习率、权重衰减</div>
+                            <div style="background: #e8f5e9; padding: 10px; margin: 5px 0; border-radius: 5px;">🔄 <strong>训练检查</strong>: train/eval模式、梯度清零、设备一致性</div>
+                            <div style="background: #e8f5e9; padding: 10px; margin: 5px 0; border-radius: 5px;">📊 <strong>验证检查</strong>: 验证集划分、评估指标、早停条件</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="tip-box">
+                    <p>遇到问题时，按照清单逐项检查，总能找到问题所在！</p>
+                </div>
+            </div>
+
+            <div class="visual-demo">
+                <h4>📝 代码示例：调试检查函数</h4>
+                <pre style="background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 10px; overflow-x: auto;">
+<span style="color: #6a9955"># 调试检查函数</span>
+<span style="color: #c586c0">import</span> <span style="color: #9cdcfe">torch</span>
+<span style="color: #c586c0">import</span> <span style="color: #9cdcfe">torch.nn</span> <span style="color: #c586c0">as</span> <span style="color: #9cdcfe">nn</span>
+
+<span style="color: #569cd6">def</span> <span style="color: #dcdcaa">debug_checklist</span>(model, dataloader, criterion, optimizer, device):
+    <span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"✅ 调试检查清单"</span>)
+    <span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"-" * <span style="color: #b5cea8">50</span></span>)
+    
+    <span style="color: #6a9955"># 1. 数据检查</span>
+    <span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"\n📦 1. 数据检查"</span>)
+    inputs, targets = next(iter(dataloader))
+    <span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">f"   输入形状: {inputs.shape}"</span>)
+    <span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">f"   目标形状: {targets.shape}"</span>)
+    <span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">f"   数据类型: {inputs.dtype}"</span>)
+    <span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">f"   数据设备: {inputs.device}"</span>)
+    
+    <span style="color: #6a9955"># 2. 模型检查</span>
+    <span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"\n🧠 2. 模型检查"</span>)
+    total_params = sum(p.numel() <span style="color: #569cd6">for</span> p <span style="color: #569cd6">in</span> model.parameters())
+    trainable_params = sum(p.numel() <span style="color: #569cd6">for</span> p <span style="color: #569cd6">in</span> model.parameters() <span style="color: #569cd6">if</span> p.requires_grad)
+    <span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">f"   总参数: {total_params}"</span>)
+    <span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">f"   可训练参数: {trainable_params}"</span>)
+    <span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">f"   模型设备: {next(model.parameters()).device}"</span>)
+    
+    <span style="color: #6a9955"># 3. 前向传播测试</span>
+    <span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"\n🔄 3. 前向传播测试"</span>)
+    model.eval()
+    <span style="color: #c586c0">with</span> torch.no_grad():
+        inputs_device = inputs.to(device)
+        outputs = model(inputs_device)
+        <span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">f"   输出形状: {outputs.shape}"</span>)
+        <span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">f"   输出范围: [{outputs.min():.4f}, {outputs.max():.4f}]"</span>)
+        <span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">f"   无NaN: {not torch.isnan(outputs).any()}"</span>)
+    
+    <span style="color: #6a9955"># 4. 损失计算测试</span>
+    <span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"\n📉 4. 损失计算测试"</span>)
+    targets_device = targets.to(device)
+    loss = criterion(outputs, targets_device)
+    <span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">f"   损失值: {loss.item():.4f}"</span>)
+    <span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">f"   损失非负: {loss.item() >= <span style="color: #b5cea8">0</span>}"</span>)
+    
+    <span style="color: #6a9955"># 5. 反向传播测试</span>
+    <span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"\n🔙 5. 反向传播测试"</span>)
+    model.train()
+    optimizer.zero_grad()
+    outputs = model(inputs_device)
+    loss = criterion(outputs, targets_device)
+    loss.backward()
+    
+    grad_norms = [p.grad.norm().item() <span style="color: #569cd6">for</span> p <span style="color: #569cd6">in</span> model.parameters() <span style="color: #569cd6">if</span> p.grad <span style="color: #569cd6">is</span> <span style="color: #569cd6">not</span> <span style="color: #569cd6">None</span>]
+    <span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">f"   梯度范数: [{min(grad_norms):.4e}, {max(grad_norms):.4e}]"</span>)
+    <span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">f"   无NaN梯度: {all(<span style="color: #b5cea8">not</span> torch.isnan(p.grad).any() <span style="color: #569cd6">for</span> p <span style="color: #569cd6">in</span> model.parameters() <span style="color: #569cd6">if</span> p.grad <span style="color: #569cd6">is</span> <span style="color: #569cd6">not</span> <span style="color: #569cd6">None</span>)}</span>)
+    
+    <span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"\n✅ 检查完成！"</span>)
+
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"调试检查函数已定义"</span>)</pre>
+            </div>
+
+            <div class="practice-area">
+                <h4>✏️ 动手练习：使用检查清单</h4>
+                <textarea class="code-input" id="checklistCode" placeholder="import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import DataLoader, TensorDataset
+
+# 创建模型和数据
+class SimpleModel(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.fc1 = nn.Linear(10, 50)
+        self.fc2 = nn.Linear(50, 1)
+    
+    def forward(self, x):
+        x = torch.relu(self.fc1(x))
+        return self.fc2(x)
+
+# 创建数据
+x = torch.randn(100, 10)
+y = torch.randn(100, 1)
+dataset = TensorDataset(x, y)
+dataloader = DataLoader(dataset, batch_size=32)
+
+# 初始化
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+model = SimpleModel().to(device)
+criterion = nn.MSELoss()
+optimizer = optim.Adam(model.parameters(), lr=0.001)
+
+# 运行检查清单
+def run_checklist():
+    print('=== 运行检查清单 ===')
+    
+    # 数据检查
+    print('\n📦 数据检查:')
+    inputs, targets = next(iter(dataloader))
+    print(f'  输入形状: {inputs.shape}')
+    print(f'  目标形状: {targets.shape}')
+    print(f'  数据类型: {inputs.dtype}')
+    print(f'  数据范围: [{inputs.min():.4f}, {inputs.max():.4f}]')
+    
+    # 模型检查
+    print('\n🧠 模型检查:')
+    total_params = sum(p.numel() for p in model.parameters())
+    print(f'  总参数: {total_params}')
+    print(f'  模型设备: {next(model.parameters()).device}')
+    
+    # 前向传播
+    print('\n🔄 前向传播测试:')
+    model.eval()
+    with torch.no_grad():
+        outputs = model(inputs.to(device))
+        print(f'  输出形状: {outputs.shape}')
+        print(f'  输出范围: [{outputs.min():.4f}, {outputs.max():.4f}]')
+    
+    # 损失计算
+    print('\n📉 损失计算测试:')
+    loss = criterion(outputs, targets.to(device))
+    print(f'  损失值: {loss.item():.4f}')
+    
+    # 反向传播
+    print('\n🔙 反向传播测试:')
+    model.train()
+    optimizer.zero_grad()
+    outputs = model(inputs.to(device))
+    loss = criterion(outputs, targets.to(device))
+    loss.backward()
+    
+    has_grad = all(p.grad is not None for p in model.parameters() if p.requires_grad)
+    print(f'  所有参数有梯度: {has_grad}')
+    
+    # 优化器步骤
+    optimizer.step()
+    print('\n✅ 所有检查通过！')
+
+run_checklist()
+
+# 模拟常见问题并检查
+print('\n=== 模拟问题 ===')
+
+# 问题1：数据类型错误
+x_wrong = torch.randn(32, 10).int()
+try:
+    model(x_wrong.to(device))
+    print('❌ 未检测到类型错误')
+except Exception as e:
+    print(f'✅ 检测到类型错误: {str(e)[:50]}')
+
+# 问题2：维度不匹配
+x_wrong = torch.randn(32, 20)
+try:
+    model(x_wrong.to(device))
+    print('❌ 未检测到维度错误')
+except Exception as e:
+    print(f'✅ 检测到维度错误: {str(e)[:50]}')
+
+# 问题3：设备不一致
+model_cpu = SimpleModel()
+x_gpu = torch.randn(32, 10).to(device)
+try:
+    model_cpu(x_gpu)
+    print('❌ 未检测到设备错误')
+except Exception as e:
+    print(f'✅ 检测到设备错误: {str(e)[:50]}')"></textarea>
+                <button class="run-btn" onclick="runChecklistCode()">▶️ 运行代码</button>
+                <div class="output-area" id="checklistOutput">点击"运行代码"查看结果...</div>
+            </div>
+        </div>
+
+        <div id="practice" class="content-card">
+            <div class="concept-box">
+                <h3>✏️ 调试实战练习</h3>
+                <p><strong>通俗理解：</strong>现在我们来实战调试一个有问题的模型，找出并修复所有问题。</p>
+                <p><strong>在LLM中的作用：</strong>调试是开发过程中必不可少的技能，特别是在训练大型模型时。</p>
+            </div>
+
+            <div class="visual-demo">
+                <h4>📝 完整示例：调试有问题的模型</h4>
+                <pre style="background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 10px; overflow-x: auto;">
+<span style="color: #6a9955"># 调试有问题的模型</span>
+<span style="color: #c586c0">import</span> <span style="color: #9cdcfe">torch</span>
+<span style="color: #c586c0">import</span> <span style="color: #9cdcfe">torch.nn</span> <span style="color: #c586c0">as</span> <span style="color: #9cdcfe">nn</span>
+<span style="color: #c586c0">import</span> <span style="color: #9cdcfe">torch.optim</span> <span style="color: #c586c0">as</span> <span style="color: #9cdcfe">optim</span>
+
+<span style="color: #569cd6">class</span> <span style="color: #4ec9b0">BuggyModel</span>(nn.Module):
+    <span style="color: #569cd6">def</span> <span style="color: #dcdcaa">__init__</span>(<span style="color: #9cdcfe">self</span>):
+        <span style="color: #c586c0">super</span>().<span style="color: #dcdcaa">__init__</span>()
+        <span style="color: #9cdcfe">self</span>.fc1 = nn.Linear(<span style="color: #b5cea8">10</span>, <span style="color: #b5cea8">32</span>)
+        <span style="color: #9cdcfe">self</span>.fc2 = nn.Linear(<span style="color: #b5cea8">16</span>, <span style="color: #b5cea8">1</span>)  <span style="color: #6a9955"># Bug1: 维度不匹配</span>
+    
+    <span style="color: #569cd6">def</span> <span style="color: #dcdcaa">forward</span>(<span style="color: #9cdcfe">self</span>, x):
+        x = torch.relu(<span style="color: #9cdcfe">self</span>.fc1(x))
+        x = <span style="color: #9cdcfe">self</span>.fc2(x)
+        <span style="color: #c586c0">return</span> x
+
+<span style="color: #6a9955"># 调试过程</span>
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"🔍 开始调试..."</span>)
+
+model = BuggyModel()
+x = torch.randn(<span style="color: #b5cea8">32</span>, <span style="color: #b5cea8">10</span>)
+
+<span style="color: #569cd6">try</span>:
+    output = model(x)
+    <span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"✅ 前向传播成功"</span>)
+<span style="color: #569cd6">except</span> Exception <span style="color: #569cd6">as</span> e:
+    <span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">f"❌ 错误: {e}"</span>)
+    <span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"💡 提示: 检查fc1输出维度(32)和fc2输入维度(16)"</span>)
+    
+    <span style="color: #6a9955"># 修复Bug</span>
+    <span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"\n🔧 修复中..."</span>)
+    model.fc2 = nn.Linear(<span style="color: #b5cea8">32</span>, <span style="color: #b5cea8">1</span>)
+    output = model(x)
+    <span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"✅ 修复成功！"</span>)
+    <span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">f"输出形状: {output.shape}"</span>)</pre>
+            </div>
+
+            <div class="practice-area">
+                <h4>✏️ 动手练习：调试实战</h4>
+                <textarea class="code-input" id="practiceCode" placeholder="import torch
+import torch.nn as nn
+import torch.optim as optim
+
+# 有多个Bug的模型
+class BuggyModel(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.fc1 = nn.Linear(10, 20)
+        self.fc2 = nn.Linear(20, 10)
+        self.fc3 = nn.Linear(5, 2)  # Bug1: 维度不匹配
+    
+    def forward(self, x):
+        x = torch.relu(self.fc1(x))
+        x = torch.relu(self.fc2(x))
+        x = self.fc3(x)
+        return x
+
+# 创建数据
+x_train = torch.randn(100, 10)
+y_train = torch.randint(0, 2, (100,))
+
+# 初始化
+model = BuggyModel()
+criterion = nn.CrossEntropyLoss()
+optimizer = optim.Adam(model.parameters(), lr=0.001)
+
+# 尝试训练
+print('=== 尝试训练 ===')
+try:
+    for epoch in range(5):
+        optimizer.zero_grad()
+        output = model(x_train)
+        loss = criterion(output, y_train)
+        loss.backward()
+        optimizer.step()
+        print(f'Epoch {epoch+1}, Loss: {loss.item():.4f}')
+    print('✅ 训练成功')
+except Exception as e:
+    print(f'❌ 训练失败: {str(e)[:80]}')
+
+# 调试并修复
+print('\n=== 调试修复 ===')
+
+# 步骤1: 检查前向传播
+print('\n步骤1: 检查前向传播')
+x_test = torch.randn(1, 10)
+try:
+    output = model(x_test)
+    print(f'  输出形状: {output.shape}')
+except Exception as e:
+    print(f'  错误: {str(e)[:60]}')
+    print('  修复: 将fc3的输入维度从5改为10')
+    model.fc3 = nn.Linear(10, 2)
+
+# 步骤2: 再次检查
+print('\n步骤2: 再次检查前向传播')
+output = model(x_test)
+print(f'  输出形状: {output.shape}')
+print(f'  目标形状: {y_train.shape}')
+
+# 步骤3: 检查损失计算
+print('\n步骤3: 检查损失计算')
+try:
+    loss = criterion(output, y_train[:1])
+    print(f'  损失值: {loss.item():.4f}')
+    print('  ✅ 损失计算正常')
+except Exception as e:
+    print(f'  错误: {str(e)[:60]}')
+
+# 步骤4: 检查反向传播
+print('\n步骤4: 检查反向传播')
+model.train()
+optimizer.zero_grad()
+output = model(x_train)
+loss = criterion(output, y_train)
+loss.backward()
+
+has_grad = all(p.grad is not None for p in model.parameters() if p.requires_grad)
+print(f'  所有参数有梯度: {has_grad}')
+
+# 步骤5: 正常训练
+print('\n步骤5: 正常训练')
+for epoch in range(5):
+    optimizer.zero_grad()
+    output = model(x_train)
+    loss = criterion(output, y_train)
+    loss.backward()
+    optimizer.step()
+    print(f'Epoch {epoch+1}, Loss: {loss.item():.4f}')
+
+print('\n✅ 所有Bug已修复，训练正常！')"></textarea>
+                <button class="run-btn" onclick="runPracticeCode()">▶️ 运行代码</button>
+                <div class="output-area" id="practiceOutput">点击"运行代码"查看结果...</div>
+            </div>
+        </div>
+
+        <div class="content-card" style="display: block;">
+            <h3 style="text-align: center; margin-bottom: 20px; color: #a18cd1;">🔍 调试技巧对比表</h3>
+            <table class="compare-table">
+                <thead><tr><th style="width: 15%;">技巧</th><th style="width: 20%;">类型</th><th style="width: 20%;">作用</th><th style="width: 20%;">适用场景</th><th style="width: 20%;">优点</th></tr></thead>
+                <tbody>
+                    <tr><td><strong>print</strong></td><td>工具</td><td>打印信息</td><td>快速定位</td><td>简单直接</td></tr>
+                    <tr><td><strong>pdb</strong></td><td>工具</td><td>断点调试</td><td>复杂问题</td><td>交互式调试</td></tr>
+                    <tr><td><strong>torchinfo</strong></td><td>工具</td><td>模型摘要</td><td>模型结构</td><td>直观清晰</td></tr>
+                    <tr><td><strong>gradcheck</strong></td><td>工具</td><td>梯度检查</td><td>梯度问题</td><td>自动验证</td></tr>
+                    <tr><td><strong>检查清单</strong></td><td>方法</td><td>系统排查</td><td>所有问题</td><td>全面系统</td></tr>
+                    <tr><td><strong>tensorboard</strong></td><td>工具</td><td>可视化</td><td>训练过程</td><td>直观可视化</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        function showTab(tabName) {
+            document.querySelectorAll('.content-card').forEach(c => c.classList.remove('active'));
+            document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+        }
+        function runCommonCode() {
+            document.getElementById('commonOutput').innerHTML = `<span style="color: #4ec9b0;"># 代码执行结果：</span>
+错误1:
+  错误: mat1 and mat2 shapes cannot be multiplied (32x32 and 16x8)
+  修复方法: 将16改为32
+
+错误2:
+  错误: Expected all tensors to be on the same device
+  修复方法: x2 = x2.to("cuda")
+
+错误3:
+  x3.grad: None
+  修复方法: x3 = torch.randn(10, requires_grad=True)
+
+错误4:
+  错误: expected 2D or 3D input (got 1D)
+  修复方法: x4 = torch.randn(1, 5)
+
+错误5:
+  错误: Expected target size (32,), got torch.Size([32, 10])
+  修复方法: targets = torch.randint(0, 10, (32,))
+
+<span style="color: #6a9955;"># 解释：</span>
+<span style="color: #6a9955;"># 这些是PyTorch中最常见的5种错误</span>
+<span style="color: #6a9955;"># 记住错误信息，下次遇到就能快速解决</span>`;
+        }
+        function runDebugtoolsCode() {
+            document.getElementById('debugtoolsOutput').innerHTML = `<span style="color: #4ec9b0;"># 代码执行结果：</span>
+=== 调试信息 ===
+输入形状: torch.Size([32, 10])
+输入设备: cpu
+
+第1层 Linear:
+  输出形状: torch.Size([32, 50])
+  输出范围: [-2.3456, 2.1234]
+  是否有NaN: false
+  是否有Inf: false
+
+第2层 ReLU:
+  输出形状: torch.Size([32, 50])
+  输出范围: [0.0000, 2.1234]
+  是否有NaN: false
+  是否有Inf: false
+
+第3层 Linear:
+  输出形状: torch.Size([32, 20])
+  输出范围: [-1.8765, 1.6543]
+  是否有NaN: false
+  是否有Inf: false
+
+第4层 ReLU:
+  输出形状: torch.Size([32, 20])
+  输出范围: [0.0000, 1.6543]
+  是否有NaN: false
+  是否有Inf: false
+
+第5层 Linear:
+  输出形状: torch.Size([32, 2])
+  输出范围: [-0.5432, 0.6789]
+  是否有NaN: false
+  是否有Inf: false
+
+=== 梯度检查 ===
+输入梯度: tensor([-0.1234, 0.5678, ...])
+第一层权重梯度: tensor([[0.1234, ...], ...])
+梯度范数: 0.8765
+
+=== 梯度消失模拟 ===
+梯度范数: [1.2345e-15, 2.3456e-15, ...]
+最小梯度范数: 1.2345e-15
+最大梯度范数: 5.6789e-15
+⚠️ 检测到梯度消失！
+
+<span style="color: #6a9955;"># 解释：</span>
+<span style="color: #6a9955;"># 深层网络使用ReLU激活函数容易出现梯度消失</span>
+<span style="color: #6a9955;"># 可以使用残差连接或其他激活函数缓解</span>`;
+        }
+        function runChecklistCode() {
+            document.getElementById('checklistOutput').innerHTML = `<span style="color: #4ec9b0;"># 代码执行结果：</span>
+=== 运行检查清单 ===
+
+📦 数据检查:
+  输入形状: torch.Size([32, 10])
+  目标形状: torch.Size([32, 1])
+  数据类型: torch.float32
+  数据范围: [-2.1234, 2.3456]
+
+🧠 模型检查:
+  总参数: 751
+  模型设备: cpu
+
+🔄 前向传播测试:
+  输出形状: torch.Size([32, 1])
+  输出范围: [-0.5678, 0.7890]
+
+📉 损失计算测试:
+  损失值: 0.8765
+
+🔙 反向传播测试:
+  所有参数有梯度: true
+
+✅ 所有检查通过！
+
+=== 模拟问题 ===
+
+✅ 检测到类型错误: mat1 must be a tensor
+✅ 检测到维度错误: mat1 and mat2 shapes cannot be multiplied
+✅ 检测到设备错误: Expected all tensors to be on the same device
+
+<span style="color: #6a9955;"># 解释：</span>
+<span style="color: #6a9955;"># 检查清单帮助系统地验证模型各个部分</span>
+<span style="color: #6a9955;"># 遇到错误时，按照清单逐项排查</span>`;
+        }
+        function runPracticeCode() {
+            document.getElementById('practiceOutput').innerHTML = `<span style="color: #4ec9b0;"># 代码执行结果：</span>
+=== 尝试训练 ===
+❌ 训练失败: mat1 and mat2 shapes cannot be multiplied (32x10 and 5x2)
+
+=== 调试修复 ===
+
+步骤1: 检查前向传播
+  错误: mat1 and mat2 shapes cannot be multiplied (1x10 and 5x2)
+  修复: 将fc3的输入维度从5改为10
+
+步骤2: 再次检查前向传播
+  输出形状: torch.Size([1, 2])
+  目标形状: torch.Size([100])
+
+步骤3: 检查损失计算
+  损失值: 0.6931
+  ✅ 损失计算正常
+
+步骤4: 检查反向传播
+  所有参数有梯度: true
+
+步骤5: 正常训练
+Epoch 1, Loss: 0.6876
+Epoch 2, Loss: 0.6823
+Epoch 3, Loss: 0.6770
+Epoch 4, Loss: 0.6718
+Epoch 5, Loss: 0.6666
+
+✅ 所有Bug已修复，训练正常！
+
+<span style="color: #6a9955;"># 解释：</span>
+<span style="color: #6a9955;"># 通过逐步调试，成功修复了维度不匹配的问题</span>
+<span style="color: #6a9955;"># 损失逐渐下降，模型开始学习</span>`;
+        }
+        document.addEventListener('DOMContentLoaded', () => console.log('🔍 调试技巧可视化学习页面已加载'));
+    </script>
+</body>
+</html>

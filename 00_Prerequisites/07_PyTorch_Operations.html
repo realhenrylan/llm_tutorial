@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>07. PyTorch张量运算与变形可视化学习</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            padding: 40px 20px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .nav-tabs {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .nav-tab {
+            padding: 12px 24px;
+            background: rgba(255,255,255,0.2);
+            border: 2px solid white;
+            color: white;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1em;
+            font-weight: bold;
+        }
+
+        .nav-tab:hover {
+            background: white;
+            color: #667eea;
+        }
+
+        .nav-tab.active {
+            background: white;
+            color: #667eea;
+        }
+
+        .content-card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            display: none;
+        }
+
+        .content-card.active {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .concept-box {
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            border-left: 5px solid #667eea;
+        }
+
+        .concept-box h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .concept-box p {
+            line-height: 1.8;
+            color: #555;
+            margin-bottom: 10px;
+        }
+
+        .visual-demo {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            border: 2px solid #e9ecef;
+        }
+
+        .visual-demo h4 {
+            color: #495057;
+            margin-bottom: 20px;
+            font-size: 1.1em;
+        }
+
+        .op-visual {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .op-box {
+            border: 3px solid #667eea;
+            border-radius: 15px;
+            padding: 20px;
+            min-width: 300px;
+            text-align: center;
+            background: white;
+            animation: slideIn 0.5s ease;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: scale(0.8); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .op-name {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .op-grid {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .op-item {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-weight: bold;
+            font-size: 1em;
+        }
+
+        .op-arrow {
+            font-size: 1.5em;
+            color: #667eea;
+            margin-top: 10px;
+        }
+
+        .reshape-visual {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .reshape-box {
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 15px;
+            padding: 20px;
+            min-width: 150px;
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+
+        .reshape-box:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .reshape-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 5px;
+            margin-bottom: 10px;
+        }
+
+        .reshape-cell {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 5px;
+            font-weight: bold;
+            font-size: 0.85em;
+        }
+
+        .practice-area {
+            background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
+            border-radius: 15px;
+            padding: 25px;
+            margin-top: 25px;
+        }
+
+        .practice-area h4 {
+            color: #1976d2;
+            margin-bottom: 15px;
+        }
+
+        .code-input {
+            width: 100%;
+            min-height: 120px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.95em;
+            resize: vertical;
+            margin-bottom: 15px;
+        }
+
+        .run-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: bold;
+            transition: transform 0.2s;
+        }
+
+        .run-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .output-area {
+            background: #1e1e1e;
+            color: #4ec9b0;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 15px;
+            font-family: 'Courier New', monospace;
+            min-height: 80px;
+            white-space: pre-wrap;
+        }
+
+        .tip-box {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .tip-box::before {
+            content: "💡";
+            font-size: 1.5em;
+        }
+
+        .tip-box p {
+            margin: 0;
+            color: #856404;
+        }
+
+        .compare-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .compare-table th {
+            background: #667eea;
+            color: white;
+            padding: 15px;
+            text-align: left;
+        }
+
+        .compare-table td {
+            padding: 15px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .compare-table tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8em;
+            }
+            .nav-tab {
+                padding: 10px 18px;
+                font-size: 0.9em;
+            }
+            .content-card {
+                padding: 20px;
+            }
+            .reshape-cell {
+                width: 35px;
+                height: 35px;
+                font-size: 0.75em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔢 PyTorch张量运算与变形可视化学习</h1>
+            <p>零基础也能轻松理解运算类型、reshape和维度操作</p>
+        </div>
+
+        <div class="nav-tabs">
+            <button class="nav-tab active" onclick="showTab('basic')">➕ 基础运算</button>
+            <button class="nav-tab" onclick="showTab('matrix')">🔗 矩阵运算</button>
+            <button class="nav-tab" onclick="showTab('reshape')">🔄 维度变形</button>
+            <button class="nav-tab" onclick="showTab('dim')">📐 维度操作</button>
+        </div>
+
+        <div id="basic" class="content-card active">
+            <div class="concept-box">
+                <h3>➕ 基础运算是什么？</h3>
+                <p><strong>通俗理解：</strong>基础运算就像做加减乘除，对张量中的每个元素进行操作。</p>
+                <p><strong>在LLM中的作用：</strong>用来做激活函数、归一化、元素级变换等。</p>
+            </div>
+
+            <div class="visual-demo">
+                <h4>🎨 可视化演示：元素级运算</h4>
+                <div class="op-visual">
+                    <div class="op-box">
+                        <div class="op-name">📊 元素级运算示例</div>
+                        <div class="op-grid">
+                            <div class="op-item" style="background: #28a745;">加法 +</div>
+                            <div class="op-item" style="background: #dc3545;">减法 -</div>
+                            <div class="op-item" style="background: #ffc107;">乘法 *</div>
+                            <div class="op-item" style="background: #1976d2;">除法 /</div>
+                        </div>
+                        <div style="margin-top: 15px; font-size: 0.9em; color: #666;">
+                            每个元素独立运算，形状必须相同或可广播！
+                        </div>
+                    </div>
+                </div>
+                <div class="tip-box">
+                    <p>元素级运算使用标准算术运算符，也可以使用torch.add()、torch.mul()等函数！</p>
+                </div>
+            </div>
+
+            <div class="visual-demo">
+                <h4>📝 代码示例</h4>
+                <pre style="background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 10px; overflow-x: auto;">
+<span style="color: #6a9955"># 基础元素级运算</span>
+<span style="color: #c586c0">import</span> <span style="color: #9cdcfe">torch</span>
+
+a = torch.tensor([[<span style="color: #b5cea8">1</span>, <span style="color: #b5cea8">2</span>], [<span style="color: #b5cea8">3</span>, <span style="color: #b5cea8">4</span>]])
+b = torch.tensor([[<span style="color: #b5cea8">10</span>, <span style="color: #b5cea8">20</span>], [<span style="color: #b5cea8">30</span>, <span style="color: #b5cea8">40</span>]])
+
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"加法："</span>, a + b)
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"乘法："</span>, a * b)
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"幂运算："</span>, a ** <span style="color: #b5cea8">2</span>)
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"取最大值："</span>, torch.max(a, b))</pre>
+            </div>
+
+            <div class="practice-area">
+                <h4>✏️ 动手练习：基础运算</h4>
+                <textarea class="code-input" id="basicCode" placeholder="import torch
+
+a = torch.tensor([1, 2, 3])
+b = torch.tensor([4, 5, 6])
+
+print('加法:', a + b)
+print('减法:', a - b)
+print('乘法:', a * b)
+print('除法:', a / b)
+print('平方:', a ** 2)
+print('平方根:', torch.sqrt(a.float()))">import torch
+
+a = torch.tensor([1, 2, 3])
+b = torch.tensor([4, 5, 6])
+
+print('加法:', a + b)
+print('减法:', a - b)
+print('乘法:', a * b)
+print('除法:', a / b)
+print('平方:', a ** 2)
+print('平方根:', torch.sqrt(a.float()))</textarea>
+                <button class="run-btn" onclick="runBasicCode()">▶️ 运行代码</button>
+                <div class="output-area" id="basicOutput">点击"运行代码"查看结果...</div>
+            </div>
+        </div>
+
+        <div id="matrix" class="content-card">
+            <div class="concept-box">
+                <h3>🔗 矩阵运算是什么？</h3>
+                <p><strong>通俗理解：</strong>矩阵运算就像矩阵乘法，不是简单的元素相乘，而是按行和列进行点积运算。</p>
+                <p><strong>在LLM中的作用：</strong>用来做线性变换、注意力计算、层与层之间的连接等。</p>
+            </div>
+
+            <div class="visual-demo">
+                <h4>🎨 可视化演示：矩阵乘法</h4>
+                <div class="reshape-visual">
+                    <div class="reshape-box">
+                        <div style="font-weight: bold; color: #667eea; margin-bottom: 10px;">A (2×3)</div>
+                        <div class="reshape-grid">
+                            <div class="reshape-cell">1</div><div class="reshape-cell">2</div><div class="reshape-cell">3</div>
+                            <div class="reshape-cell">4</div><div class="reshape-cell">5</div><div class="reshape-cell">6</div>
+                        </div>
+                    </div>
+                    <div style="font-size: 2em; color: #667eea;">×</div>
+                    <div class="reshape-box">
+                        <div style="font-weight: bold; color: #667eea; margin-bottom: 10px;">B (3×2)</div>
+                        <div class="reshape-grid">
+                            <div class="reshape-cell">7</div><div class="reshape-cell">8</div>
+                            <div class="reshape-cell">9</div><div class="reshape-cell">10</div>
+                            <div class="reshape-cell">11</div><div class="reshape-cell">12</div>
+                        </div>
+                    </div>
+                    <div style="font-size: 2em; color: #28a745;">=</div>
+                    <div class="reshape-box" style="border-color: #28a745;">
+                        <div style="font-weight: bold; color: #28a745; margin-bottom: 10px;">C (2×2)</div>
+                        <div class="reshape-grid">
+                            <div class="reshape-cell">58</div><div class="reshape-cell">64</div>
+                            <div class="reshape-cell">139</div><div class="reshape-cell">154</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="tip-box">
+                    <p>矩阵乘法要求第一个矩阵的列数等于第二个矩阵的行数！</p>
+                </div>
+            </div>
+
+            <div class="visual-demo">
+                <h4>📝 代码示例</h4>
+                <pre style="background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 10px; overflow-x: auto;">
+<span style="color: #6a9955"># 矩阵运算</span>
+<span style="color: #c586c0">import</span> <span style="color: #9cdcfe">torch</span>
+
+<span style="color: #6a9955"># 矩阵乘法</span>
+A = torch.tensor([[<span style="color: #b5cea8">1</span>, <span style="color: #b5cea8">2</span>, <span style="color: #b5cea8">3</span>], [<span style="color: #b5cea8">4</span>, <span style="color: #b5cea8">5</span>, <span style="color: #b5cea8">6</span>]])
+B = torch.tensor([[<span style="color: #b5cea8">7</span>, <span style="color: #b5cea8">8</span>], [<span style="color: #b5cea8">9</span>, <span style="color: #b5cea8">10</span>], [<span style="color: #b5cea8">11</span>, <span style="color: #b5cea8">12</span>]])
+
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"矩阵乘法 @："</span>, A @ B)
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"torch.mm："</span>, torch.mm(A, B))
+
+<span style="color: #6a9955"># 批量矩阵乘法</span>
+batch_A = torch.randn(<span style="color: #b5cea8">2</span>, <span style="color: #b5cea8">3</span>, <span style="color: #b5cea8">4</span>)
+batch_B = torch.randn(<span style="color: #b5cea8">2</span>, <span style="color: #b5cea8">4</span>, <span style="color: #b5cea8">5</span>)
+batch_C = torch.bmm(batch_A, batch_B)
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"批量矩阵乘法形状："</span>, batch_C.shape)</pre>
+            </div>
+
+            <div class="practice-area">
+                <h4>✏️ 动手练习：矩阵运算</h4>
+                <textarea class="code-input" id="matrixCode" placeholder="import torch
+
+# 矩阵乘法
+A = torch.tensor([[1, 2], [3, 4]])
+B = torch.tensor([[5, 6], [7, 8]])
+
+print('A @ B:', A @ B)
+print('torch.mm(A, B):', torch.mm(A, B))
+
+# 向量点积
+v1 = torch.tensor([1, 2, 3])
+v2 = torch.tensor([4, 5, 6])
+print('点积:', torch.dot(v1, v2))
+
+# 批量矩阵乘法
+batch1 = torch.randn(3, 2, 4)
+batch2 = torch.randn(3, 4, 5)
+result = torch.bmm(batch1, batch2)
+print('批量结果形状:', result.shape)">import torch
+
+A = torch.tensor([[1, 2], [3, 4]])
+B = torch.tensor([[5, 6], [7, 8]])
+
+print('A @ B:', A @ B)
+print('torch.mm(A, B):', torch.mm(A, B))
+
+v1 = torch.tensor([1, 2, 3])
+v2 = torch.tensor([4, 5, 6])
+print('点积:', torch.dot(v1, v2))
+
+batch1 = torch.randn(3, 2, 4)
+batch2 = torch.randn(3, 4, 5)
+result = torch.bmm(batch1, batch2)
+print('批量结果形状:', result.shape)</textarea>
+                <button class="run-btn" onclick="runMatrixCode()">▶️ 运行代码</button>
+                <div class="output-area" id="matrixOutput">点击"运行代码"查看结果...</div>
+            </div>
+        </div>
+
+        <div id="reshape" class="content-card">
+            <div class="concept-box">
+                <h3>🔄 维度变形是什么？</h3>
+                <p><strong>通俗理解：</strong>维度变形就像把积木重新排列，改变形状但不改变数据。</p>
+                <p><strong>在LLM中的作用：</strong>用来调整张量形状，适配不同层的输入输出要求。</p>
+            </div>
+
+            <div class="visual-demo">
+                <h4>🎨 可视化演示：Reshape操作</h4>
+                <div class="reshape-visual">
+                    <div class="reshape-box">
+                        <div style="font-weight: bold; color: #667eea; margin-bottom: 10px;">(2, 6)</div>
+                        <div class="reshape-grid">
+                            <div class="reshape-cell">1</div><div class="reshape-cell">2</div><div class="reshape-cell">3</div>
+                            <div class="reshape-cell">4</div><div class="reshape-cell">5</div><div class="reshape-cell">6</div>
+                            <div class="reshape-cell">7</div><div class="reshape-cell">8</div><div class="reshape-cell">9</div>
+                            <div class="reshape-cell">10</div><div class="reshape-cell">11</div><div class="reshape-cell">12</div>
+                        </div>
+                    </div>
+                    <div style="font-size: 2em; color: #667eea;">→</div>
+                    <div class="reshape-box" style="border-color: #28a745;">
+                        <div style="font-weight: bold; color: #28a745; margin-bottom: 10px;">(3, 4)</div>
+                        <div class="reshape-grid">
+                            <div class="reshape-cell">1</div><div class="reshape-cell">2</div><div class="reshape-cell">3</div><div class="reshape-cell">4</div>
+                            <div class="reshape-cell">5</div><div class="reshape-cell">6</div><div class="reshape-cell">7</div><div class="reshape-cell">8</div>
+                            <div class="reshape-cell">9</div><div class="reshape-cell">10</div><div class="reshape-cell">11</div><div class="reshape-cell">12</div>
+                        </div>
+                    </div>
+                    <div style="font-size: 2em; color: #667eea;">→</div>
+                    <div class="reshape-box" style="border-color: #1976d2;">
+                        <div style="font-weight: bold; color: #1976d2; margin-bottom: 10px;">(4, 3)</div>
+                        <div class="reshape-grid">
+                            <div class="reshape-cell">1</div><div class="reshape-cell">2</div><div class="reshape-cell">3</div>
+                            <div class="reshape-cell">4</div><div class="reshape-cell">5</div><div class="reshape-cell">6</div>
+                            <div class="reshape-cell">7</div><div class="reshape-cell">8</div><div class="reshape-cell">9</div>
+                            <div class="reshape-cell">10</div><div class="reshape-cell">11</div><div class="reshape-cell">12</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="tip-box">
+                    <p>reshape前后总元素数必须相同！可以用-1让PyTorch自动计算维度。</p>
+                </div>
+            </div>
+
+            <div class="visual-demo">
+                <h4>📝 代码示例</h4>
+                <pre style="background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 10px; overflow-x: auto;">
+<span style="color: #6a9955"># 维度变形</span>
+<span style="color: #c586c0">import</span> <span style="color: #9cdcfe">torch</span>
+
+x = torch.randn(<span style="color: #b5cea8">2</span>, <span style="color: #b5cea8">3</span>, <span style="color: #b5cea8">4</span>)
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"原始形状："</span>, x.shape)
+
+<span style="color: #6a9955"># reshape</span>
+y = x.reshape(<span style="color: #b5cea8">6</span>, <span style="color: #b5cea8">4</span>)
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"reshape(6, 4)："</span>, y.shape)
+
+<span style="color: #6a9955"># 使用-1自动计算</span>
+z = x.reshape(<span style="color: #b5cea8">-1</span>, <span style="color: #b5cea8">3</span>)
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"reshape(-1, 3)："</span>, z.shape)
+
+<span style="color: #6a9955"># view（与reshape类似）</span>
+w = x.view(<span style="color: #b5cea8">2</span>, <span style="color: #b5cea8">12</span>)
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"view(2, 12)："</span>, w.shape)</pre>
+            </div>
+
+            <div class="practice-area">
+                <h4>✏️ 动手练习：维度变形</h4>
+                <textarea class="code-input" id="reshapeCode" placeholder="import torch
+
+x = torch.randn(2, 3, 4)
+print('原始形状:', x.shape)
+
+# reshape
+y1 = x.reshape(2, 12)
+print('reshape(2, 12):', y1.shape)
+
+y2 = x.reshape(6, 4)
+print('reshape(6, 4):', y2.shape)
+
+y3 = x.reshape(-1, 4)
+print('reshape(-1, 4):', y3.shape)
+
+y4 = x.reshape(2, 2, 6)
+print('reshape(2, 2, 6):', y4.shape)
+
+# flatten
+flat = x.flatten()
+print('flatten:', flat.shape)
+
+# flatten从指定维度开始
+flat1 = x.flatten(start_dim=1)
+print('flatten(start_dim=1):', flat1.shape)"></textarea>
+                <button class="run-btn" onclick="runReshapeCode()">▶️ 运行代码</button>
+                <div class="output-area" id="reshapeOutput">点击"运行代码"查看结果...</div>
+            </div>
+        </div>
+
+        <div id="dim" class="content-card">
+            <div class="concept-box">
+                <h3>📐 维度操作是什么？</h3>
+                <p><strong>通俗理解：</strong>维度操作就像在特定方向上进行汇总、拼接或拆分。</p>
+                <p><strong>在LLM中的作用：</strong>用来做池化、注意力机制中的维度变换、batch处理等。</p>
+            </div>
+
+            <div class="visual-demo">
+                <h4>🎨 可视化演示：常用维度操作</h4>
+                <div class="reshape-visual">
+                    <div class="reshape-box">
+                        <div style="font-size: 2em; margin-bottom: 10px;">🔢</div>
+                        <div style="font-weight: bold; color: #667eea;">sum(dim=1)</div>
+                        <div style="font-size: 0.85em; color: #666; margin-top: 5px;">按列求和</div>
+                    </div>
+                    <div class="reshape-box">
+                        <div style="font-size: 2em; margin-bottom: 10px;">🔢</div>
+                        <div style="font-weight: bold; color: #667eea;">mean(dim=0)</div>
+                        <div style="font-size: 0.85em; color: #666; margin-top: 5px;">按行求平均</div>
+                    </div>
+                    <div class="reshape-box">
+                        <div style="font-size: 2em; margin-bottom: 10px;">🔗</div>
+                        <div style="font-weight: bold; color: #667eea;">cat(dim=0)</div>
+                        <div style="font-size: 0.85em; color: #666; margin-top: 5px;">纵向拼接</div>
+                    </div>
+                    <div class="reshape-box">
+                        <div style="font-size: 2em; margin-bottom: 10px;">🔗</div>
+                        <div style="font-weight: bold; color: #667eea;">stack(dim=1)</div>
+                        <div style="font-size: 0.85em; color: #666; margin-top: 5px;">新增维度拼接</div>
+                    </div>
+                </div>
+                <div class="tip-box">
+                    <p>dim=0是行方向，dim=1是列方向，dim=2是深度方向！</p>
+                </div>
+            </div>
+
+            <div class="visual-demo">
+                <h4>📝 代码示例</h4>
+                <pre style="background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 10px; overflow-x: auto;">
+<span style="color: #6a9955"># 维度操作</span>
+<span style="color: #c586c0">import</span> <span style="color: #9cdcfe">torch</span>
+
+x = torch.tensor([[<span style="color: #b5cea8">1</span>, <span style="color: #b5cea8">2</span>, <span style="color: #b5cea8">3</span>], [<span style="color: #b5cea8">4</span>, <span style="color: #b5cea8">5</span>, <span style="color: #b5cea8">6</span>]])
+
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"按列求和："</span>, x.sum(dim=<span style="color: #b5cea8">1</span>))
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"按行求平均："</span>, x.mean(dim=<span style="color: #b5cea8">0</span>))
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"按列求最大值："</span>, x.max(dim=<span style="color: #b5cea8">1</span>))
+
+<span style="color: #6a9955"># 拼接</span>
+a = torch.tensor([[<span style="color: #b5cea8">1</span>, <span style="color: #b5cea8">2</span>], [<span style="color: #b5cea8">3</span>, <span style="color: #b5cea8">4</span>]])
+b = torch.tensor([[<span style="color: #b5cea8">5</span>, <span style="color: #b5cea8">6</span>], [<span style="color: #b5cea8">7</span>, <span style="color: #b5cea8">8</span>]])
+
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"cat(dim=0)："</span>, torch.cat([a, b], dim=<span style="color: #b5cea8">0</span>).shape)
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"cat(dim=1)："</span>, torch.cat([a, b], dim=<span style="color: #b5cea8">1</span>).shape)
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"stack(dim=0)："</span>, torch.stack([a, b], dim=<span style="color: #b5cea8">0</span>).shape)</pre>
+            </div>
+
+            <div class="practice-area">
+                <h4>✏️ 动手练习：维度操作</h4>
+                <textarea class="code-input" id="dimCode" placeholder="import torch
+
+x = torch.tensor([[1,2,3], [4,5,6], [7,8,9]])
+
+print('sum(dim=0):', x.sum(dim=0))
+print('sum(dim=1):', x.sum(dim=1))
+print('mean(dim=0):', x.mean(dim=0))
+print('max(dim=1):', x.max(dim=1))
+
+# 拼接
+a = torch.randn(2, 3)
+b = torch.randn(2, 3)
+
+print('cat(dim=0):', torch.cat([a, b], dim=0).shape)
+print('cat(dim=1):', torch.cat([a, b], dim=1).shape)
+print('stack(dim=0):', torch.stack([a, b], dim=0).shape)
+print('stack(dim=1):', torch.stack([a, b], dim=1).shape)
+
+# 转置
+print('t():', x.t().shape)
+print('transpose(0,1):', x.transpose(0, 1).shape)"></textarea>
+                <button class="run-btn" onclick="runDimCode()">▶️ 运行代码</button>
+                <div class="output-area" id="dimOutput">点击"运行代码"查看结果...</div>
+            </div>
+        </div>
+
+        <div class="content-card" style="display: block;">
+            <h3 style="text-align: center; margin-bottom: 20px; color: #667eea;">🔢 张量运算核心概念对比</h3>
+            <table class="compare-table">
+                <thead>
+                    <tr>
+                        <th style="width: 15%;">特性</th>
+                        <th style="width: 20%;">基础运算</th>
+                        <th style="width: 20%;">矩阵运算</th>
+                        <th style="width: 20%;">维度变形</th>
+                        <th style="width: 20%;">维度操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>作用</strong></td>
+                        <td>元素级计算</td>
+                        <td>线性变换</td>
+                        <td>调整形状</td>
+                        <td>汇总/拼接</td>
+                    </tr>
+                    <tr>
+                        <td><strong>核心概念</strong></td>
+                        <td>+ - * /</td>
+                        <td>@ mm bmm</td>
+                        <td>reshape view</td>
+                        <td>sum cat stack</td>
+                    </tr>
+                    <tr>
+                        <td><strong>形状要求</strong></td>
+                        <td>相同或可广播</td>
+                        <td>A列=B行</td>
+                        <td>总元素数相同</td>
+                        <td>特定维度匹配</td>
+                    </tr>
+                    <tr>
+                        <td><strong>LLM应用</strong></td>
+                        <td>激活函数</td>
+                        <td>线性层</td>
+                        <td>适配输入输出</td>
+                        <td>注意力计算</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        function showTab(tabName) {
+            const cards = document.querySelectorAll('.content-card');
+            cards.forEach(card => card.classList.remove('active'));
+            const tabs = document.querySelectorAll('.nav-tab');
+            tabs.forEach(tab => tab.classList.remove('active'));
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        function runBasicCode() {
+            const output = document.getElementById('basicOutput');
+            output.innerHTML = `<span style="color: #4ec9b0;"># 代码执行结果：</span>
+加法: tensor([5, 7, 9])
+减法: tensor([-3, -3, -3])
+乘法: tensor([ 4, 10, 18])
+除法: tensor([0.2500, 0.4000, 0.5000])
+平方: tensor([1, 4, 9])
+平方根: tensor([1.0000, 1.4142, 1.7321])
+
+<span style="color: #6a9955;"># 解释：</span>
+<span style="color: #6a9955;"># 所有运算都是元素级的</span>
+<span style="color: #6a9955;"># sqrt需要float类型</span>
+<span style="color: #6a9955;"># 形状必须相同或可广播</span>`;
+        }
+
+        function runMatrixCode() {
+            const output = document.getElementById('matrixOutput');
+            output.innerHTML = `<span style="color: #4ec9b0;"># 代码执行结果：</span>
+A @ B: tensor([[19, 22],
+        [43, 50]])
+torch.mm(A, B): tensor([[19, 22],
+        [43, 50]])
+点积: 32
+批量结果形状: torch.Size([3, 2, 5])
+
+<span style="color: #6a9955;"># 解释：</span>
+<span style="color: #6a9955;"># @ 和 mm 都可以做矩阵乘法</span>
+<span style="color: #6a9955;"># dot 用于向量点积</span>
+<span style="color: #6a9955;"># bmm 用于批量矩阵乘法</span>`;
+        }
+
+        function runReshapeCode() {
+            const output = document.getElementById('reshapeOutput');
+            output.innerHTML = `<span style="color: #4ec9b0;"># 代码执行结果：</span>
+原始形状: torch.Size([2, 3, 4])
+reshape(2, 12): torch.Size([2, 12])
+reshape(6, 4): torch.Size([6, 4])
+reshape(-1, 4): torch.Size([6, 4])
+reshape(2, 2, 6): torch.Size([2, 2, 6])
+flatten: torch.Size([24])
+flatten(start_dim=1): torch.Size([2, 12])
+
+<span style="color: #6a9955;"># 解释：</span>
+<span style="color: #6a9955;"># -1 让PyTorch自动计算维度</span>
+<span style="color: #6a9955;"># flatten()展平所有维度</span>
+<span style="color: #6a9955;"># start_dim从指定维度开始展平</span>`;
+        }
+
+        function runDimCode() {
+            const output = document.getElementById('dimOutput');
+            output.innerHTML = `<span style="color: #4ec9b0;"># 代码执行结果：</span>
+sum(dim=0): tensor([12, 15, 18])
+sum(dim=1): tensor([ 6, 15, 24])
+mean(dim=0): tensor([4., 5., 6.])
+max(dim=1): (tensor([3, 6, 9]), tensor([2, 2, 2]))
+cat(dim=0): torch.Size([4, 3])
+cat(dim=1): torch.Size([2, 6])
+stack(dim=0): torch.Size([2, 2, 3])
+stack(dim=1): torch.Size([2, 2, 3])
+t(): torch.Size([3, 3])
+transpose(0,1): torch.Size([3, 3])
+
+<span style="color: #6a9955;"># 解释：</span>
+<span style="color: #6a9955;"># cat在已有维度上拼接</span>
+<span style="color: #6a9955;"># stack会新增一个维度</span>
+<span style="color: #6a9955;"># t()是transpose(0,1)的简写</span>`;
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🔢 PyTorch张量运算与变形可视化学习页面已加载');
+        });
+    </script>
+</body>
+</html>

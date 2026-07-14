@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>05. PyTorch张量基础可视化学习</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            padding: 40px 20px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .nav-tabs {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .nav-tab {
+            padding: 12px 24px;
+            background: rgba(255,255,255,0.2);
+            border: 2px solid white;
+            color: white;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1em;
+            font-weight: bold;
+        }
+
+        .nav-tab:hover {
+            background: white;
+            color: #667eea;
+        }
+
+        .nav-tab.active {
+            background: white;
+            color: #667eea;
+        }
+
+        .content-card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            display: none;
+        }
+
+        .content-card.active {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .concept-box {
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            border-left: 5px solid #667eea;
+        }
+
+        .concept-box h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .concept-box p {
+            line-height: 1.8;
+            color: #555;
+            margin-bottom: 10px;
+        }
+
+        .visual-demo {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            border: 2px solid #e9ecef;
+        }
+
+        .visual-demo h4 {
+            color: #495057;
+            margin-bottom: 20px;
+            font-size: 1.1em;
+        }
+
+        .tensor-visual {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .tensor-box {
+            border: 3px solid #667eea;
+            border-radius: 15px;
+            padding: 20px;
+            min-width: 300px;
+            text-align: center;
+            background: white;
+            animation: slideIn 0.5s ease;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: scale(0.8); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .tensor-name {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .tensor-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            justify-items: center;
+        }
+
+        .tensor-cell {
+            width: 60px;
+            height: 50px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+
+        .device-visual {
+            display: flex;
+            gap: 30px;
+            justify-content: center;
+            align-items: flex-start;
+            flex-wrap: wrap;
+        }
+
+        .device-box {
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 15px;
+            padding: 20px;
+            min-width: 200px;
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+
+        .device-box:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .device-icon {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .device-title {
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .practice-area {
+            background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
+            border-radius: 15px;
+            padding: 25px;
+            margin-top: 25px;
+        }
+
+        .practice-area h4 {
+            color: #1976d2;
+            margin-bottom: 15px;
+        }
+
+        .code-input {
+            width: 100%;
+            min-height: 120px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.95em;
+            resize: vertical;
+            margin-bottom: 15px;
+        }
+
+        .run-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: bold;
+            transition: transform 0.2s;
+        }
+
+        .run-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .output-area {
+            background: #1e1e1e;
+            color: #4ec9b0;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 15px;
+            font-family: 'Courier New', monospace;
+            min-height: 80px;
+            white-space: pre-wrap;
+        }
+
+        .tip-box {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .tip-box::before {
+            content: "💡";
+            font-size: 1.5em;
+        }
+
+        .tip-box p {
+            margin: 0;
+            color: #856404;
+        }
+
+        .compare-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .compare-table th {
+            background: #667eea;
+            color: white;
+            padding: 15px;
+            text-align: left;
+        }
+
+        .compare-table td {
+            padding: 15px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .compare-table tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8em;
+            }
+            .nav-tab {
+                padding: 10px 18px;
+                font-size: 0.9em;
+            }
+            .content-card {
+                padding: 20px;
+            }
+            .tensor-cell {
+                width: 50px;
+                height: 40px;
+                font-size: 0.8em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔥 PyTorch张量基础可视化学习</h1>
+            <p>零基础也能轻松理解Tensor、设备和数据类型</p>
+        </div>
+
+        <div class="nav-tabs">
+            <button class="nav-tab active" onclick="showTab('tensor')">📦 什么是Tensor？</button>
+            <button class="nav-tab" onclick="showTab('create')">✨ 创建Tensor</button>
+            <button class="nav-tab" onclick="showTab('device')">⚡ 设备管理</button>
+            <button class="nav-tab" onclick="showTab('dtype')">📊 数据类型</button>
+        </div>
+
+        <div id="tensor" class="content-card active">
+            <div class="concept-box">
+                <h3>📦 什么是Tensor？</h3>
+                <p><strong>通俗理解：</strong>Tensor就像一个超级数组，可以在CPU和GPU上运算，是PyTorch的核心数据结构。</p>
+                <p><strong>在LLM中的作用：</strong>用来存储模型参数、输入数据、中间计算结果等，是深度学习的基石。</p>
+            </div>
+
+            <div class="visual-demo">
+                <h4>🎨 可视化演示：Tensor就像数据积木</h4>
+                <div class="tensor-visual">
+                    <div class="tensor-box">
+                        <div class="tensor-name">📦 Tensor (2, 3)</div>
+                        <div class="tensor-grid">
+                            <div class="tensor-cell">1</div>
+                            <div class="tensor-cell">2</div>
+                            <div class="tensor-cell">3</div>
+                            <div class="tensor-cell">4</div>
+                            <div class="tensor-cell">5</div>
+                            <div class="tensor-cell">6</div>
+                        </div>
+                        <div style="margin-top: 15px; font-size: 0.9em; color: #666;">shape = (2, 3) | dtype = float32 | device = cpu</div>
+                    </div>
+                </div>
+                <div class="tip-box">
+                    <p>Tensor不仅存储数据，还记录了形状、数据类型和所在设备，方便自动求导！</p>
+                </div>
+            </div>
+
+            <div class="visual-demo">
+                <h4>📝 代码示例</h4>
+                <pre style="background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 10px; overflow-x: auto;">
+<span style="color: #6a9955"># 创建基本Tensor</span>
+<span style="color: #c586c0">import</span> <span style="color: #9cdcfe">torch</span>
+
+<span style="color: #6a9955"># 从列表创建</span>
+x = torch.tensor([[<span style="color: #b5cea8">1</span>, <span style="color: #b5cea8">2</span>, <span style="color: #b5cea8">3</span>], [<span style="color: #b5cea8">4</span>, <span style="color: #b5cea8">5</span>, <span style="color: #b5cea8">6</span>]])
+
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"Tensor："</span>, x)
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"形状："</span>, x.shape)
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"数据类型："</span>, x.dtype)
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"设备："</span>, x.device)</pre>
+            </div>
+
+            <div class="practice-area">
+                <h4>✏️ 动手练习：创建Tensor</h4>
+                <textarea class="code-input" id="tensorCode" placeholder="import torch
+x = torch.tensor([[1,2],[3,4]])
+print('Tensor:', x)
+print('Shape:', x.shape)
+print('Dtype:', x.dtype)
+print('Device:', x.device)">import torch
+x = torch.tensor([[1,2],[3,4]])
+print('Tensor:', x)
+print('Shape:', x.shape)
+print('Dtype:', x.dtype)
+print('Device:', x.device)</textarea>
+                <button class="run-btn" onclick="runTensorCode()">▶️ 运行代码</button>
+                <div class="output-area" id="tensorOutput">点击"运行代码"查看结果...</div>
+            </div>
+        </div>
+
+        <div id="create" class="content-card">
+            <div class="concept-box">
+                <h3>✨ 如何创建Tensor？</h3>
+                <p><strong>通俗理解：</strong>创建Tensor就像做蛋糕，可以从零开始做，也可以用现成的配料。</p>
+                <p><strong>在LLM中的作用：</strong>初始化模型参数、创建输入数据、生成掩码等。</p>
+            </div>
+
+            <div class="visual-demo">
+                <h4>🎨 可视化演示：常见的创建方式</h4>
+                <div class="device-visual">
+                    <div class="device-box">
+                        <div class="device-icon">🌀</div>
+                        <div class="device-title">zeros()</div>
+                        <div style="font-size: 0.85em; color: #666; margin-top: 5px;">创建全0张量</div>
+                    </div>
+                    <div class="device-box">
+                        <div class="device-icon">🔢</div>
+                        <div class="device-title">ones()</div>
+                        <div style="font-size: 0.85em; color: #666; margin-top: 5px;">创建全1张量</div>
+                    </div>
+                    <div class="device-box">
+                        <div class="device-icon">🎲</div>
+                        <div class="device-title">randn()</div>
+                        <div style="font-size: 0.85em; color: #666; margin-top: 5px;">创建随机张量</div>
+                    </div>
+                    <div class="device-box">
+                        <div class="device-icon">📐</div>
+                        <div class="device-title">eye()</div>
+                        <div style="font-size: 0.85em; color: #666; margin-top: 5px;">创建单位矩阵</div>
+                    </div>
+                </div>
+                <div class="tip-box">
+                    <p>使用randn()创建的张量值服从标准正态分布（均值为0，方差为1）！</p>
+                </div>
+            </div>
+
+            <div class="visual-demo">
+                <h4>📝 代码示例</h4>
+                <pre style="background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 10px; overflow-x: auto;">
+<span style="color: #6a9955"># 多种创建Tensor的方式</span>
+<span style="color: #c586c0">import</span> <span style="color: #9cdcfe">torch</span>
+
+<span style="color: #6a9955"># 创建全0张量</span>
+zeros = torch.zeros(<span style="color: #b5cea8">2</span>, <span style="color: #b5cea8">3</span>)
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"全0："</span>, zeros)
+
+<span style="color: #6a9955"># 创建全1张量</span>
+ones = torch.ones(<span style="color: #b5cea8">3</span>, <span style="color: #b5cea8">3</span>)
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"全1："</span>, ones)
+
+<span style="color: #6a9955"># 创建随机张量（标准正态分布）</span>
+rand_tensor = torch.randn(<span style="color: #b5cea8">2</span>, <span style="color: #b5cea8">4</span>)
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"随机："</span>, rand_tensor)
+
+<span style="color: #6a9955"># 创建单位矩阵</span>
+identity = torch.eye(<span style="color: #b5cea8">3</span>)
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"单位矩阵："</span>, identity)</pre>
+            </div>
+
+            <div class="practice-area">
+                <h4>✏️ 动手练习：创建各种Tensor</h4>
+                <textarea class="code-input" id="createCode" placeholder="import torch
+
+# 创建不同类型的张量
+zeros = torch.zeros(3, 4)
+print('zeros:', zeros)
+
+ones = torch.ones(2, 2)
+print('ones:', ones)
+
+rand = torch.rand(3, 3)
+print('rand:', rand)
+
+eye = torch.eye(4)
+print('eye:', eye)">import torch
+
+zeros = torch.zeros(3, 4)
+print('zeros:', zeros)
+
+ones = torch.ones(2, 2)
+print('ones:', ones)
+
+rand = torch.rand(3, 3)
+print('rand:', rand)
+
+eye = torch.eye(4)
+print('eye:', eye)</textarea>
+                <button class="run-btn" onclick="runCreateCode()">▶️ 运行代码</button>
+                <div class="output-area" id="createOutput">点击"运行代码"查看结果...</div>
+            </div>
+        </div>
+
+        <div id="device" class="content-card">
+            <div class="concept-box">
+                <h3>⚡ 设备管理是什么？</h3>
+                <p><strong>通俗理解：</strong>设备管理就像给Tensor分配工作地点，可以放在CPU上慢慢算，也可以放在GPU上加速算。</p>
+                <p><strong>在LLM中的作用：</strong>利用GPU加速训练和推理，处理大规模数据。</p>
+            </div>
+
+            <div class="visual-demo">
+                <h4>🎨 可视化演示：CPU vs GPU</h4>
+                <div class="device-visual">
+                    <div class="device-box">
+                        <div class="device-icon">💻</div>
+                        <div class="device-title">CPU</div>
+                        <div style="font-size: 0.85em; color: #666; margin-top: 5px;">
+                            <ul style="list-style: none; padding-left: 0;">
+                                <li>• 通用性强</li>
+                                <li>• 计算慢</li>
+                                <li>• 适合简单运算</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div style="font-size: 2em; color: #667eea; margin-top: 40px;">↔️</div>
+                    <div class="device-box" style="background: #e3f2fd; border-color: #1976d2;">
+                        <div class="device-icon">🚀</div>
+                        <div class="device-title">GPU</div>
+                        <div style="font-size: 0.85em; color: #666; margin-top: 5px;">
+                            <ul style="list-style: none; padding-left: 0;">
+                                <li>• 并行计算</li>
+                                <li>• 计算快</li>
+                                <li>• 适合深度学习</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="tip-box">
+                    <p>使用.to(device)可以在CPU和GPU之间移动Tensor！</p>
+                </div>
+            </div>
+
+            <div class="visual-demo">
+                <h4>📝 代码示例</h4>
+                <pre style="background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 10px; overflow-x: auto;">
+<span style="color: #6a9955"># 设备管理</span>
+<span style="color: #c586c0">import</span> <span style="color: #9cdcfe">torch</span>
+
+<span style="color: #6a9955"># 检查是否有GPU可用</span>
+device = <span style="color: #ce9178">'cuda'</span> <span style="color: #569cd6">if</span> torch.cuda.is_available() <span style="color: #569cd6">else</span> <span style="color: #ce9178">'cpu'</span>
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"当前设备："</span>, device)
+
+<span style="color: #6a9955"># 创建在CPU上的Tensor</span>
+x = torch.tensor([[<span style="color: #b5cea8">1</span>, <span style="color: #b5cea8">2</span>], [<span style="color: #b5cea8">3</span>, <span style="color: #b5cea8">4</span>]])
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"CPU上的Tensor："</span>, x.device)
+
+<span style="color: #6a9955"># 移动到GPU</span>
+x_gpu = x.to(device)
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"GPU上的Tensor："</span>, x_gpu.device)
+
+<span style="color: #6a9955"># 创建时直接指定设备</span>
+y = torch.tensor([[<span style="color: #b5cea8">1</span>, <span style="color: #b5cea8">2</span>]], device=device)
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"直接创建在设备上："</span>, y.device)</pre>
+            </div>
+
+            <div class="practice-area">
+                <h4>✏️ 动手练习：设备管理</h4>
+                <textarea class="code-input" id="deviceCode" placeholder="import torch
+
+# 检查设备
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
+print('设备:', device)
+
+# 创建并移动Tensor
+x = torch.randn(2, 3)
+print('原始设备:', x.device)
+
+x = x.to(device)
+print('移动后设备:', x.device)
+
+# 直接在设备上创建
+y = torch.ones(3, 3, device=device)
+print('直接创建:', y.device)">import torch
+
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
+print('设备:', device)
+
+x = torch.randn(2, 3)
+print('原始设备:', x.device)
+
+x = x.to(device)
+print('移动后设备:', x.device)
+
+y = torch.ones(3, 3, device=device)
+print('直接创建:', y.device)</textarea>
+                <button class="run-btn" onclick="runDeviceCode()">▶️ 运行代码</button>
+                <div class="output-area" id="deviceOutput">点击"运行代码"查看结果...</div>
+            </div>
+        </div>
+
+        <div id="dtype" class="content-card">
+            <div class="concept-box">
+                <h3>📊 数据类型是什么？</h3>
+                <p><strong>通俗理解：</strong>数据类型就像告诉计算机用多大的箱子装数字，箱子越大精度越高，但占空间也越大。</p>
+                <p><strong>在LLM中的作用：</strong>选择合适的数据类型可以节省显存、加速训练，常用float32和bf16。</p>
+            </div>
+
+            <div class="visual-demo">
+                <h4>🎨 可视化演示：常用数据类型</h4>
+                <div class="device-visual">
+                    <div class="device-box">
+                        <div class="device-icon">🔵</div>
+                        <div class="device-title">float32</div>
+                        <div style="font-size: 0.85em; color: #666; margin-top: 5px;">4字节 | 标准精度</div>
+                    </div>
+                    <div class="device-box" style="background: #e8f5e9; border-color: #4caf50;">
+                        <div class="device-icon">🟢</div>
+                        <div class="device-title">bf16</div>
+                        <div style="font-size: 0.85em; color: #666; margin-top: 5px;">2字节 | 脑浮点</div>
+                    </div>
+                    <div class="device-box" style="background: #fff3cd; border-color: #ffc107;">
+                        <div class="device-icon">🟡</div>
+                        <div class="device-title">float16</div>
+                        <div style="font-size: 0.85em; color: #666; margin-top: 5px;">2字节 | 半精度</div>
+                    </div>
+                    <div class="device-box">
+                        <div class="device-icon">🔴</div>
+                        <div class="device-title">int64</div>
+                        <div style="font-size: 0.85em; color: #666; margin-top: 5px;">8字节 | 整数索引</div>
+                    </div>
+                </div>
+                <div class="tip-box">
+                    <p>bf16是LLM训练中常用的数据类型，精度足够且节省一半显存！</p>
+                </div>
+            </div>
+
+            <div class="visual-demo">
+                <h4>📝 代码示例</h4>
+                <pre style="background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 10px; overflow-x: auto;">
+<span style="color: #6a9955"># 数据类型转换</span>
+<span style="color: #c586c0">import</span> <span style="color: #9cdcfe">torch</span>
+
+<span style="color: #6a9955"># 创建不同数据类型的Tensor</span>
+x_float32 = torch.tensor([<span style="color: #b5cea8">1.0</span>, <span style="color: #b5cea8">2.0</span>, <span style="color: #b5cea8">3.0</span>], dtype=torch.float32)
+x_bf16 = torch.tensor([<span style="color: #b5cea8">1.0</span>, <span style="color: #b5cea8">2.0</span>, <span style="color: #b5cea8">3.0</span>], dtype=torch.bfloat16)
+x_int = torch.tensor([<span style="color: #b5cea8">1</span>, <span style="color: #b5cea8">2</span>, <span style="color: #b5cea8">3</span>], dtype=torch.int64)
+
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"float32："</span>, x_float32.dtype)
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"bfloat16："</span>, x_bf16.dtype)
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"int64："</span>, x_int.dtype)
+
+<span style="color: #6a9955"># 类型转换</span>
+x_converted = x_float32.to(torch.bfloat16)
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"转换后："</span>, x_converted.dtype)</pre>
+            </div>
+
+            <div class="practice-area">
+                <h4>✏️ 动手练习：数据类型</h4>
+                <textarea class="code-input" id="dtypeCode" placeholder="import torch
+
+# 创建不同类型的张量
+float32 = torch.tensor([1.5, 2.5, 3.5], dtype=torch.float32)
+bf16 = torch.tensor([1.5, 2.5, 3.5], dtype=torch.bfloat16)
+int64 = torch.tensor([1, 2, 3], dtype=torch.int64)
+
+print('float32:', float32.dtype)
+print('bfloat16:', bf16.dtype)
+print('int64:', int64.dtype)
+
+# 类型转换
+converted = float32.to(torch.float16)
+print('转换为float16:', converted.dtype)
+
+# 查看元素大小
+print('float32元素大小:', float32.element_size(), '字节')
+print('bfloat16元素大小:', bf16.element_size(), '字节')">import torch
+
+float32 = torch.tensor([1.5, 2.5, 3.5], dtype=torch.float32)
+bf16 = torch.tensor([1.5, 2.5, 3.5], dtype=torch.bfloat16)
+int64 = torch.tensor([1, 2, 3], dtype=torch.int64)
+
+print('float32:', float32.dtype)
+print('bfloat16:', bf16.dtype)
+print('int64:', int64.dtype)
+
+converted = float32.to(torch.float16)
+print('转换为float16:', converted.dtype)
+
+print('float32元素大小:', float32.element_size(), '字节')
+print('bfloat16元素大小:', bf16.element_size(), '字节')</textarea>
+                <button class="run-btn" onclick="runDtypeCode()">▶️ 运行代码</button>
+                <div class="output-area" id="dtypeOutput">点击"运行代码"查看结果...</div>
+            </div>
+        </div>
+
+        <div class="content-card" style="display: block;">
+            <h3 style="text-align: center; margin-bottom: 20px; color: #667eea;">🔥 PyTorch张量核心概念对比</h3>
+            <table class="compare-table">
+                <thead>
+                    <tr>
+                        <th style="width: 15%;">特性</th>
+                        <th style="width: 20%;">Tensor定义</th>
+                        <th style="width: 20%;">创建方式</th>
+                        <th style="width: 20%;">设备管理</th>
+                        <th style="width: 20%;">数据类型</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>作用</strong></td>
+                        <td>核心数据结构</td>
+                        <td>初始化数据</td>
+                        <td>分配计算资源</td>
+                        <td>控制精度和空间</td>
+                    </tr>
+                    <tr>
+                        <td><strong>核心概念</strong></td>
+                        <td>多维数组</td>
+                        <td>zeros/ones/randn</td>
+                        <td>CPU/GPU</td>
+                        <td>float32/bf16/int64</td>
+                    </tr>
+                    <tr>
+                        <td><strong>类比</strong></td>
+                        <td>数据积木</td>
+                        <td>制作积木</td>
+                        <td>工作地点</td>
+                        <td>箱子大小</td>
+                    </tr>
+                    <tr>
+                        <td><strong>LLM应用</strong></td>
+                        <td>存储参数和数据</td>
+                        <td>初始化权重</td>
+                        <td>加速训练</td>
+                        <td>节省显存</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        function showTab(tabName) {
+            const cards = document.querySelectorAll('.content-card');
+            cards.forEach(card => card.classList.remove('active'));
+            const tabs = document.querySelectorAll('.nav-tab');
+            tabs.forEach(tab => tab.classList.remove('active'));
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        function runTensorCode() {
+            const output = document.getElementById('tensorOutput');
+            output.innerHTML = `<span style="color: #4ec9b0;"># 代码执行结果：</span>
+Tensor: tensor([[1, 2],
+        [3, 4]])
+Shape: torch.Size([2, 2])
+Dtype: torch.int64
+Device: cpu
+
+<span style="color: #6a9955;"># 解释：</span>
+<span style="color: #6a9955;"># torch.tensor() 从列表创建张量</span>
+<span style="color: #6a9955;"># 默认dtype是int64（整数）</span>
+<span style="color: #6a9955;"># 默认device是cpu</span>`;
+        }
+
+        function runCreateCode() {
+            const output = document.getElementById('createOutput');
+            output.innerHTML = `<span style="color: #4ec9b0;"># 代码执行结果：</span>
+zeros: tensor([[0., 0., 0., 0.],
+        [0., 0., 0., 0.],
+        [0., 0., 0., 0.]])
+ones: tensor([[1., 1.],
+        [1., 1.]])
+rand: tensor([[0.x, 0.x, 0.x],
+        [0.x, 0.x, 0.x],
+        [0.x, 0.x, 0.x]])
+eye: tensor([[1., 0., 0., 0.],
+        [0., 1., 0., 0.],
+        [0., 0., 1., 0.],
+        [0., 0., 0., 1.]])
+
+<span style="color: #6a9955;"># 解释：</span>
+<span style="color: #6a9955;"># zeros/ones 创建全0/全1张量</span>
+<span style="color: #6a9955;"># rand 创建[0,1)均匀分布随机数</span>
+<span style="color: #6a9955;"># eye 创建单位矩阵</span>`;
+        }
+
+        function runDeviceCode() {
+            const output = document.getElementById('deviceOutput');
+            output.innerHTML = `<span style="color: #4ec9b0;"># 代码执行结果：</span>
+设备: cpu (或cuda)
+原始设备: cpu
+移动后设备: cuda:0 (或cpu)
+直接创建: cuda:0 (或cpu)
+
+<span style="color: #6a9955;"># 解释：</span>
+<span style="color: #6a9955;"># torch.cuda.is_available() 检查GPU</span>
+<span style="color: #6a9955;"># .to(device) 在设备间移动张量</span>
+<span style="color: #6a9955;"># device参数可直接指定创建位置</span>`;
+        }
+
+        function runDtypeCode() {
+            const output = document.getElementById('dtypeOutput');
+            output.innerHTML = `<span style="color: #4ec9b0;"># 代码执行结果：</span>
+float32: torch.float32
+bfloat16: torch.bfloat16
+int64: torch.int64
+转换为float16: torch.float16
+float32元素大小: 4 字节
+bfloat16元素大小: 2 字节
+
+<span style="color: #6a9955;"># 解释：</span>
+<span style="color: #6a9955;"># dtype参数指定数据类型</span>
+<span style="color: #6a9955;"># .to(dtype) 进行类型转换</span>
+<span style="color: #6a9955;"># bf16比float32节省一半空间</span>`;
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🔥 PyTorch张量基础可视化学习页面已加载');
+        });
+    </script>
+</body>
+</html>

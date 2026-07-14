@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>03. Python面向对象与工具模式可视化学习</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            padding: 40px 20px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .nav-tabs {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .nav-tab {
+            padding: 12px 24px;
+            background: rgba(255,255,255,0.2);
+            border: 2px solid white;
+            color: white;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1em;
+            font-weight: bold;
+        }
+
+        .nav-tab:hover {
+            background: white;
+            color: #667eea;
+        }
+
+        .nav-tab.active {
+            background: white;
+            color: #667eea;
+        }
+
+        .content-card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            display: none;
+        }
+
+        .content-card.active {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .concept-box {
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            border-left: 5px solid #667eea;
+        }
+
+        .concept-box h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .concept-box p {
+            line-height: 1.8;
+            color: #555;
+            margin-bottom: 10px;
+        }
+
+        .visual-demo {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            border: 2px solid #e9ecef;
+        }
+
+        .visual-demo h4 {
+            color: #495057;
+            margin-bottom: 20px;
+            font-size: 1.1em;
+        }
+
+        .class-visual {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .class-box {
+            border: 3px solid #667eea;
+            border-radius: 15px;
+            padding: 20px;
+            min-width: 300px;
+            text-align: center;
+            background: white;
+            animation: slideIn 0.5s ease;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: scale(0.8); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .class-name {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .class-attributes {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .attribute {
+            background: #f8f9fa;
+            padding: 8px 15px;
+            border-radius: 8px;
+            border-left: 3px solid #28a745;
+        }
+
+        .method {
+            background: #e3f2fd;
+            padding: 8px 15px;
+            border-radius: 8px;
+            border-left: 3px solid #1976d2;
+        }
+
+        .class-instance {
+            border: 3px dashed #28a745;
+            border-radius: 15px;
+            padding: 20px;
+            min-width: 300px;
+            text-align: center;
+            background: #f8fff8;
+            animation: slideIn 0.5s ease 0.2s both;
+        }
+
+        .arrow-down {
+            font-size: 2em;
+            color: #667eea;
+            margin: 10px 0;
+        }
+
+        .utility-visual {
+            display: flex;
+            gap: 30px;
+            justify-content: center;
+            align-items: flex-start;
+            flex-wrap: wrap;
+        }
+
+        .utility-box {
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 15px;
+            padding: 20px;
+            min-width: 200px;
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+
+        .utility-box:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .utility-icon {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .utility-title {
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .practice-area {
+            background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
+            border-radius: 15px;
+            padding: 25px;
+            margin-top: 25px;
+        }
+
+        .practice-area h4 {
+            color: #1976d2;
+            margin-bottom: 15px;
+        }
+
+        .code-input {
+            width: 100%;
+            min-height: 120px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.95em;
+            resize: vertical;
+            margin-bottom: 15px;
+        }
+
+        .run-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: bold;
+            transition: transform 0.2s;
+        }
+
+        .run-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .output-area {
+            background: #1e1e1e;
+            color: #4ec9b0;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 15px;
+            font-family: 'Courier New', monospace;
+            min-height: 80px;
+            white-space: pre-wrap;
+        }
+
+        .tip-box {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .tip-box::before {
+            content: "💡";
+            font-size: 1.5em;
+        }
+
+        .tip-box p {
+            margin: 0;
+            color: #856404;
+        }
+
+        .compare-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .compare-table th {
+            background: #667eea;
+            color: white;
+            padding: 15px;
+            text-align: left;
+        }
+
+        .compare-table td {
+            padding: 15px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .compare-table tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8em;
+            }
+            .nav-tab {
+                padding: 10px 18px;
+                font-size: 0.9em;
+            }
+            .content-card {
+                padding: 20px;
+            }
+            .class-box, .class-instance {
+                min-width: 250px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏗️ Python面向对象与工具模式可视化学习</h1>
+            <p>零基础也能轻松理解类、对象和工具模式</p>
+        </div>
+
+        <div class="nav-tabs">
+            <button class="nav-tab active" onclick="showTab('class')">📦 什么是类？</button>
+            <button class="nav-tab" onclick="showTab('dataclass')">📝 Dataclass</button>
+            <button class="nav-tab" onclick="showTab('utility')">🔧 工具模式</button>
+            <button class="nav-tab" onclick="showTab('when')">❓ 何时封装？</button>
+        </div>
+
+        <div id="class" class="content-card active">
+            <div class="concept-box">
+                <h3>📦 什么是类（Class）？</h3>
+                <p><strong>通俗理解：</strong>类就像一个模具，用来批量生产具有相同特征的对象。比如用同一个模具做饼干。</p>
+                <p><strong>在LLM中的作用：</strong>用来封装配置、状态、结果等，让代码更整洁、可复用。</p>
+            </div>
+
+            <div class="visual-demo">
+                <h4>🎨 可视化演示：类就像做饼干</h4>
+                <div class="class-visual">
+                    <div class="class-box">
+                        <div class="class-name">🍪 饼干模具 (Class)</div>
+                        <div class="class-attributes">
+                            <div class="attribute">形状：圆形</div>
+                            <div class="attribute">大小：中等</div>
+                            <div class="method">烘焙()</div>
+                        </div>
+                    </div>
+                    <div class="arrow-down">⬇️</div>
+                    <div class="class-instance">
+                        <div class="class-name">🍪 饼干1 (实例1)</div>
+                        <div class="class-attributes">
+                            <div class="attribute">形状：圆形</div>
+                            <div class="attribute">大小：中等</div>
+                        </div>
+                    </div>
+                    <div class="class-instance">
+                        <div class="class-name">🍪 饼干2 (实例2)</div>
+                        <div class="class-attributes">
+                            <div class="attribute">形状：圆形</div>
+                            <div class="attribute">大小：中等</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="tip-box">
+                    <p>Class是模板，实例是根据模板创建的具体对象。修改模板会影响所有实例，但每个实例可以有自己的独特属性！</p>
+                </div>
+            </div>
+
+            <div class="visual-demo">
+                <h4>📝 代码示例</h4>
+                <pre style="background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 10px; overflow-x: auto;">
+<span style="color: #6a9955"># 定义一个类（模具）</span>
+<span style="color: #569cd6">class</span> <span style="color: #4ec9b0">BatchSummary</span>:
+    <span style="color: #569cd6">def</span> <span style="color: #dcdcaa">__init__</span>(<span style="color: #9cdcfe">self</span>, loss, step, extras):
+        <span style="color: #9cdcfe">self</span>.loss = loss
+        <span style="color: #9cdcfe">self</span>.step = step
+        <span style="color: #9cdcfe">self</span>.extras = extras
+    
+    <span style="color: #569cd6">def</span> <span style="color: #dcdcaa">short</span>(<span style="color: #9cdcfe">self</span>):
+        <span style="color: #c586c0">return</span> <span style="color: #ce9178">f"step={self.step}, loss={self.loss:.4f}"</span>
+
+<span style="color: #6a9955"># 创建实例（用模具做饼干）</span>
+summary = BatchSummary(loss=<span style="color: #b5cea8">0.1234</span>, step=<span style="color: #b5cea8">12</span>, extras={<span style="color: #ce9178">"lr"</span>: <span style="color: #b5cea8">1e-4</span>})
+<span style="color: #dcdcaa">print</span>(summary.short())  <span style="color: #6a9955"># 输出: "step=12, loss=0.1234"</span></pre>
+            </div>
+
+            <div class="practice-area">
+                <h4>✏️ 动手练习：创建一个类</h4>
+                <textarea class="code-input" id="classCode" placeholder="class Person:
+    def __init__(self, name, age):
+        self.name = name
+        self.age = age
+    
+    def introduce(self):
+        return f&quot;我叫{self.name}，今年{self.age}岁&quot;
+
+p = Person(&quot;小明&quot;, 20)
+print(p.introduce())">class Person:
+    def __init__(self, name, age):
+        self.name = name
+        self.age = age
+    
+    def introduce(self):
+        return f"我叫{self.name}，今年{self.age}岁"
+
+p = Person("小明", 20)
+print(p.introduce())</textarea>
+                <button class="run-btn" onclick="runClassCode()">▶️ 运行代码</button>
+                <div class="output-area" id="classOutput">点击"运行代码"查看结果...</div>
+            </div>
+        </div>
+
+        <div id="dataclass" class="content-card">
+            <div class="concept-box">
+                <h3>📝 Dataclass是什么？</h3>
+                <p><strong>通俗理解：</strong>Dataclass就像一个自动帮你写好基础代码的智能模具，不用手动写__init__、__repr__等方法。</p>
+                <p><strong>在LLM中的作用：</strong>用来快速定义配置类、数据类，减少样板代码。</p>
+            </div>
+
+            <div class="visual-demo">
+                <h4>🎨 可视化演示：普通类 vs Dataclass</h4>
+                <div class="utility-visual">
+                    <div class="utility-box">
+                        <div class="utility-icon">📝</div>
+                        <div class="utility-title">普通类</div>
+                        <div style="font-size: 0.85em; color: #666; margin-top: 5px;">
+                            需要手动写<br>__init__、__repr__等
+                        </div>
+                    </div>
+                    <div class="utility-box" style="background: #e3f2fd; border-color: #1976d2;">
+                        <div class="utility-icon">⚡</div>
+                        <div class="utility-title">Dataclass</div>
+                        <div style="font-size: 0.85em; color: #666; margin-top: 5px;">
+                            自动生成<br>__init__、__repr__等
+                        </div>
+                    </div>
+                </div>
+                <div class="tip-box">
+                    <p>Dataclass是Python 3.7+的特性，适合定义只存储数据的类！</p>
+                </div>
+            </div>
+
+            <div class="visual-demo">
+                <h4>📝 代码示例</h4>
+                <pre style="background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 10px; overflow-x: auto;">
+<span style="color: #6a9955"># 使用dataclass装饰器</span>
+<span style="color: #c586c0">from</span> dataclasses <span style="color: #c586c0">import</span> dataclass
+
+<span style="color: #6a9955"># 定义dataclass</span>
+<span style="color: #646695">@dataclass</span>
+<span style="color: #569cd6">class</span> <span style="color: #4ec9b0">RunConfig</span>:
+    lr: <span style="color: #4ec9b0">float</span> = <span style="color: #b5cea8">1e-3</span>
+    batch_size: <span style="color: #4ec9b0">int</span> = <span style="color: #b5cea8">32</span>
+    epochs: <span style="color: #4ec9b0">int</span> = <span style="color: #b5cea8">3</span>
+
+    <span style="color: #569cd6">def</span> <span style="color: #dcdcaa">as_dict</span>(<span style="color: #9cdcfe">self</span>):
+        <span style="color: #c586c0">return</span> {
+            <span style="color: #ce9178">'lr'</span>: <span style="color: #9cdcfe">self</span>.lr,
+            <span style="color: #ce9178">'batch_size'</span>: <span style="color: #9cdcfe">self</span>.batch_size,
+            <span style="color: #ce9178">'epochs'</span>: <span style="color: #9cdcfe">self</span>.epochs,
+        }
+
+<span style="color: #6a9955"># 使用dataclass</span>
+config = RunConfig()
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"默认配置："</span>, config.as_dict())
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"repr："</span>, config)</pre>
+            </div>
+
+            <div class="practice-area">
+                <h4>✏️ 动手练习：使用dataclass</h4>
+                <textarea class="code-input" id="dataclassCode" placeholder="from dataclasses import dataclass
+
+@dataclass
+class Metrics:
+    loss: float = 0.0
+    accuracy: float = 0.0
+    
+    def summary(self):
+        return f&quot;loss={self.loss:.4f}, accuracy={self.accuracy:.2%}&quot;
+
+m = Metrics(loss=0.1234, accuracy=0.987)
+print(m.summary())">from dataclasses import dataclass
+
+@dataclass
+class Metrics:
+    loss: float = 0.0
+    accuracy: float = 0.0
+    
+    def summary(self):
+        return f"loss={self.loss:.4f}, accuracy={self.accuracy:.2%}"
+
+m = Metrics(loss=0.1234, accuracy=0.987)
+print(m.summary())</textarea>
+                <button class="run-btn" onclick="runDataclassCode()">▶️ 运行代码</button>
+                <div class="output-area" id="dataclassOutput">点击"运行代码"查看结果...</div>
+            </div>
+        </div>
+
+        <div id="utility" class="content-card">
+            <div class="concept-box">
+                <h3>🔧 工具模式是什么？</h3>
+                <p><strong>通俗理解：</strong>工具模式就像工具箱，把常用的小功能整理在一起，需要的时候随时拿出来用。</p>
+                <p><strong>在LLM中的作用：</strong>用来组织辅助函数、工具函数，让代码更模块化。</p>
+            </div>
+
+            <div class="visual-demo">
+                <h4>🎨 可视化演示：工具模式</h4>
+                <div class="class-visual">
+                    <div class="class-box">
+                        <div class="class-name">🧰 工具箱 (Utility)</div>
+                        <div class="class-attributes">
+                            <div class="method">format_run_tag(name, epochs)</div>
+                            <div class="method">count_tokens(tokens)</div>
+                            <div class="method">merge_config(base, overrides)</div>
+                        </div>
+                    </div>
+                    <div class="arrow-down">⬇️</div>
+                    <div style="display: flex; gap: 20px; flex-wrap: wrap; justify-content: center;">
+                        <div class="class-instance" style="min-width: 200px;">
+                            <div class="class-name">format_run_tag</div>
+                            <div style="font-size: 0.9em; color: #666;">生成运行标签</div>
+                        </div>
+                        <div class="class-instance" style="min-width: 200px;">
+                            <div class="class-name">count_tokens</div>
+                            <div style="font-size: 0.9em; color: #666;">统计token数量</div>
+                        </div>
+                        <div class="class-instance" style="min-width: 200px;">
+                            <div class="class-name">merge_config</div>
+                            <div style="font-size: 0.9em; color: #666;">合并配置字典</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="tip-box">
+                    <p>工具函数是无状态的，每次调用都只依赖输入参数，不会保存中间状态！</p>
+                </div>
+            </div>
+
+            <div class="visual-demo">
+                <h4>📝 代码示例</h4>
+                <pre style="background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 10px; overflow-x: auto;">
+<span style="color: #6a9955"># 工具函数示例</span>
+
+<span style="color: #569cd6">def</span> <span style="color: #dcdcaa">format_run_tag</span>(name, epochs):
+    <span style="color: #c586c0">return</span> <span style="color: #ce9178">f'{name}@{epochs}'</span>
+
+<span style="color: #569cd6">def</span> <span style="color: #dcdcaa">merge_model_config</span>(base_config, overrides):
+    merged = base_config.copy()
+    merged.update(overrides)
+    <span style="color: #c586c0">return</span> merged
+
+<span style="color: #569cd6">def</span> <span style="color: #dcdcaa">count_token_frequency</span>(tokens):
+    freq = {}
+    <span style="color: #569cd6">for</span> token <span style="color: #c586c0">in</span> tokens:
+        freq[token] = freq.get(token, <span style="color: #b5cea8">0</span>) + <span style="color: #b5cea8">1</span>
+    <span style="color: #c586c0">return</span> freq
+
+<span style="color: #6a9955"># 使用工具函数</span>
+<span style="color: #dcdcaa">print</span>(format_run_tag(<span style="color: #ce9178">'TinyLM'</span>, <span style="color: #b5cea8">3</span>))
+<span style="color: #dcdcaa">print</span>(merge_model_config({<span style="color: #ce9178">'name'</span>: <span style="color: #ce9178">'TinyLM'</span>}, {<span style="color: #ce9178">'lr'</span>: <span style="color: #b5cea8">1e-4</span>}))</pre>
+            </div>
+
+            <div class="practice-area">
+                <h4>✏️ 动手练习：写工具函数</h4>
+                <textarea class="code-input" id="utilityCode" placeholder="def calculate_mean(numbers):
+    return sum(numbers) / len(numbers)
+
+def normalize(values):
+    max_val = max(values)
+    return [v / max_val for v in values]
+
+data = [1, 2, 3, 4, 5]
+print(&quot;均值:&quot;, calculate_mean(data))
+print(&quot;归一化:&quot;, normalize(data))">def calculate_mean(numbers):
+    return sum(numbers) / len(numbers)
+
+def normalize(values):
+    max_val = max(values)
+    return [v / max_val for v in values]
+
+data = [1, 2, 3, 4, 5]
+print("均值:", calculate_mean(data))
+print("归一化:", normalize(data))</textarea>
+                <button class="run-btn" onclick="runUtilityCode()">▶️ 运行代码</button>
+                <div class="output-area" id="utilityOutput">点击"运行代码"查看结果...</div>
+            </div>
+        </div>
+
+        <div id="when" class="content-card">
+            <div class="concept-box">
+                <h3>❓ 什么时候该封装成类？</h3>
+                <p><strong>通俗理解：</strong>当数据和操作它们的方法需要一起行动时，就该封装成类。就像把工具箱和说明书放在一起。</p>
+                <p><strong>在LLM中的作用：</strong>判断何时用函数、何时用类，写出更清晰的代码。</p>
+            </div>
+
+            <div class="visual-demo">
+                <h4>🎨 可视化演示：函数 vs 类的决策</h4>
+                <div class="utility-visual">
+                    <div class="utility-box">
+                        <div class="utility-icon">🔧</div>
+                        <div class="utility-title">用函数</div>
+                        <div style="font-size: 0.85em; color: #666; margin-top: 5px; text-align: left;">
+                            <ul style="list-style: none; padding-left: 0;">
+                                <li>• 简单的一次性操作</li>
+                                <li>• 无状态计算</li>
+                                <li>• 通用工具</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="utility-box" style="background: #fff3cd; border-color: #ffc107;">
+                        <div class="utility-icon">⚖️</div>
+                        <div class="utility-title">决策点</div>
+                        <div style="font-size: 0.85em; color: #666; margin-top: 5px;">
+                            状态需要保存吗？<br>多个方法共享数据？
+                        </div>
+                    </div>
+                    <div class="utility-box" style="background: #e8f5e9; border-color: #4caf50;">
+                        <div class="utility-icon">📦</div>
+                        <div class="utility-title">用类</div>
+                        <div style="font-size: 0.85em; color: #666; margin-top: 5px; text-align: left;">
+                            <ul style="list-style: none; padding-left: 0;">
+                                <li>• 需要保存状态</li>
+                                <li>• 多个方法共享数据</li>
+                                <li>• 需要统一接口</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="tip-box">
+                    <p>如果函数开始反复传同一组状态，就说明该封装成类了！</p>
+                </div>
+            </div>
+
+            <div class="visual-demo">
+                <h4>📝 代码示例：从函数到类</h4>
+                <pre style="background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 10px; overflow-x: auto;">
+<span style="color: #6a9955"># 方式1：使用函数（简单场景）</span>
+<span style="color: #569cd6">def</span> <span style="color: #dcdcaa">format_run_tag</span>(name, epochs):
+    <span style="color: #c586c0">return</span> <span style="color: #ce9178">f'{name}@{epochs}'</span>
+
+<span style="color: #6a9955"># 方式2：使用类（需要更多功能）</span>
+<span style="color: #c586c0">from</span> dataclasses <span style="color: #c586c0">import</span> dataclass
+
+<span style="color: #646695">@dataclass</span>
+<span style="color: #569cd6">class</span> <span style="color: #4ec9b0">RunBuilder</span>:
+    name: <span style="color: #4ec9b0">str</span>
+    epochs: <span style="color: #4ec9b0">int</span>
+
+    <span style="color: #569cd6">def</span> <span style="color: #dcdcaa">summary</span>(<span style="color: #9cdcfe">self</span>):
+        <span style="color: #c586c0">return</span> <span style="color: #ce9178">f'{self.name}@{self.epochs}|steps={self.epochs}'</span>
+
+<span style="color: #6a9955"># 使用</span>
+tag = format_run_tag(<span style="color: #ce9178">'TinyLM'</span>, <span style="color: #b5cea8">3</span>)
+builder = RunBuilder(name=<span style="color: #ce9178">'TinyLM'</span>, epochs=<span style="color: #b5cea8">3</span>)
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">'函数：'</span>, tag)
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">'类：'</span>, builder.summary())</pre>
+            </div>
+
+            <div class="practice-area">
+                <h4>✏️ 动手练习：判断何时用类</h4>
+                <textarea class="code-input" id="whenCode" placeholder="# 思考：这段代码应该用函数还是类？
+# 场景：记录训练过程中的指标
+
+from dataclasses import dataclass
+
+@dataclass
+class TrainingTracker:
+    total_loss: float = 0.0
+    total_steps: int = 0
+    
+    def update(self, loss):
+        self.total_loss += loss
+        self.total_steps += 1
+    
+    def avg_loss(self):
+        return self.total_loss / self.total_steps if self.total_steps > 0 else 0
+
+tracker = TrainingTracker()
+tracker.update(0.5)
+tracker.update(0.3)
+tracker.update(0.2)
+print(&quot;平均损失:&quot;, tracker.avg_loss())">from dataclasses import dataclass
+
+@dataclass
+class TrainingTracker:
+    total_loss: float = 0.0
+    total_steps: int = 0
+    
+    def update(self, loss):
+        self.total_loss += loss
+        self.total_steps += 1
+    
+    def avg_loss(self):
+        return self.total_loss / self.total_steps if self.total_steps > 0 else 0
+
+tracker = TrainingTracker()
+tracker.update(0.5)
+tracker.update(0.3)
+tracker.update(0.2)
+print("平均损失:", tracker.avg_loss())</textarea>
+                <button class="run-btn" onclick="runWhenCode()">▶️ 运行代码</button>
+                <div class="output-area" id="whenOutput">点击"运行代码"查看结果...</div>
+            </div>
+        </div>
+
+        <div class="content-card" style="display: block;">
+            <h3 style="text-align: center; margin-bottom: 20px; color: #667eea;">🏗️ 面向对象核心概念对比</h3>
+            <table class="compare-table">
+                <thead>
+                    <tr>
+                        <th style="width: 15%;">特性</th>
+                        <th style="width: 20%;">类 (Class)</th>
+                        <th style="width: 20%;">Dataclass</th>
+                        <th style="width: 20%;">工具函数</th>
+                        <th style="width: 20%;">实例 (Instance)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>作用</strong></td>
+                        <td>定义模板</td>
+                        <td>简化数据类定义</td>
+                        <td>无状态操作</td>
+                        <td>具体对象</td>
+                    </tr>
+                    <tr>
+                        <td><strong>状态</strong></td>
+                        <td>无</td>
+                        <td>无</td>
+                        <td>无</td>
+                        <td>有</td>
+                    </tr>
+                    <tr>
+                        <td><strong>类比</strong></td>
+                        <td>模具</td>
+                        <td>智能模具</td>
+                        <td>工具</td>
+                        <td>成品</td>
+                    </tr>
+                    <tr>
+                        <td><strong>LLM应用</strong></td>
+                        <td>模型定义</td>
+                        <td>配置类</td>
+                        <td>辅助函数</td>
+                        <td>模型实例</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        function showTab(tabName) {
+            const cards = document.querySelectorAll('.content-card');
+            cards.forEach(card => card.classList.remove('active'));
+            const tabs = document.querySelectorAll('.nav-tab');
+            tabs.forEach(tab => tab.classList.remove('active'));
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        function runClassCode() {
+            const output = document.getElementById('classOutput');
+            output.innerHTML = `<span style="color: #4ec9b0;"># 代码执行结果：</span>
+我叫小明，今年20岁
+
+<span style="color: #6a9955;"># 解释：</span>
+<span style="color: #6a9955;"># class 定义了一个模板（模具）</span>
+<span style="color: #6a9955;"># __init__ 是构造函数，创建实例时自动调用</span>
+<span style="color: #6a9955;"># self 代表实例本身，用于访问实例的属性</span>`;
+        }
+
+        function runDataclassCode() {
+            const output = document.getElementById('dataclassOutput');
+            output.innerHTML = `<span style="color: #4ec9b0;"># 代码执行结果：</span>
+loss=0.1234, accuracy=98.70%
+
+<span style="color: #6a9955;"># 解释：</span>
+<span style="color: #6a9955;"># @dataclass 装饰器自动生成 __init__</span>
+<span style="color: #6a9955;"># 可以直接通过类名创建实例</span>
+<span style="color: #6a9955;"># 还可以添加自定义方法</span>`;
+        }
+
+        function runUtilityCode() {
+            const output = document.getElementById('utilityOutput');
+            output.innerHTML = `<span style="color: #4ec9b0;"># 代码执行结果：</span>
+均值: 3.0
+归一化: [0.2, 0.4, 0.6, 0.8, 1.0]
+
+<span style="color: #6a9955;"># 解释：</span>
+<span style="color: #6a9955;"># 工具函数是无状态的</span>
+<span style="color: #6a9955;"># 每次调用只依赖输入参数</span>
+<span style="color: #6a9955;"># 适合通用的辅助操作</span>`;
+        }
+
+        function runWhenCode() {
+            const output = document.getElementById('whenOutput');
+            output.innerHTML = `<span style="color: #4ec9b0;"># 代码执行结果：</span>
+平均损失: 0.3333333333333333
+
+<span style="color: #6a9955;"># 解释：</span>
+<span style="color: #6a9955;"># 这个场景用类更合适</span>
+<span style="color: #6a9955;"># 因为需要保存累计状态（total_loss, total_steps）</span>
+<span style="color: #6a9955;"># 多个方法（update, avg_loss）共享这些状态</span>`;
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🏗️ Python面向对象与工具模式可视化学习页面已加载');
+        });
+    </script>
+</body>
+</html>

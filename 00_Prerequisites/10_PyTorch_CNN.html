@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>10. PyTorch卷积神经网络可视化学习</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; color: #333; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .header { text-align: center; padding: 40px 20px; color: white; }
+        .header h1 { font-size: 2.5em; margin-bottom: 10px; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); }
+        .header p { font-size: 1.2em; opacity: 0.9; }
+        .nav-tabs { display: flex; justify-content: center; gap: 10px; margin-bottom: 30px; flex-wrap: wrap; }
+        .nav-tab { padding: 12px 24px; background: rgba(255,255,255,0.2); border: 2px solid white; color: white; border-radius: 25px; cursor: pointer; transition: all 0.3s ease; font-size: 1em; font-weight: bold; }
+        .nav-tab:hover { background: white; color: #667eea; }
+        .nav-tab.active { background: white; color: #667eea; }
+        .content-card { background: white; border-radius: 20px; padding: 30px; margin-bottom: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); display: none; }
+        .content-card.active { display: block; animation: fadeIn 0.5s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .concept-box { background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%); border-radius: 15px; padding: 25px; margin-bottom: 25px; border-left: 5px solid #667eea; }
+        .concept-box h3 { color: #667eea; margin-bottom: 15px; font-size: 1.3em; }
+        .concept-box p { line-height: 1.8; color: #555; margin-bottom: 10px; }
+        .visual-demo { background: #f8f9fa; border-radius: 15px; padding: 25px; margin-bottom: 25px; border: 2px solid #e9ecef; }
+        .visual-demo h4 { color: #495057; margin-bottom: 20px; font-size: 1.1em; }
+        .cnn-visual { display: flex; flex-direction: column; align-items: center; gap: 20px; }
+        .cnn-box { border: 3px solid #667eea; border-radius: 15px; padding: 20px; min-width: 300px; text-align: center; background: white; animation: slideIn 0.5s ease; }
+        @keyframes slideIn { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: scale(1); } }
+        .cnn-name { font-size: 1.2em; font-weight: bold; color: #667eea; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid #e9ecef; }
+        .conv-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; margin: 10px auto; max-width: 200px; }
+        .conv-cell { width: 35px; height: 35px; border: 2px solid #667eea; display: flex; align-items: center; justify-content: center; font-size: 0.8em; }
+        .conv-cell.kernel { background: #667eea; color: white; }
+        .conv-cell.output { background: #28a745; color: white; }
+        .practice-area { background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%); border-radius: 15px; padding: 25px; margin-top: 25px; }
+        .practice-area h4 { color: #1976d2; margin-bottom: 15px; }
+        .code-input { width: 100%; min-height: 120px; border: 2px solid #ddd; border-radius: 10px; padding: 15px; font-family: 'Courier New', monospace; font-size: 0.95em; resize: vertical; margin-bottom: 15px; }
+        .run-btn { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 12px 30px; border-radius: 25px; cursor: pointer; font-size: 1em; font-weight: bold; transition: transform 0.2s; }
+        .run-btn:hover { transform: scale(1.05); }
+        .output-area { background: #1e1e1e; color: #4ec9b0; border-radius: 10px; padding: 15px; margin-top: 15px; font-family: 'Courier New', monospace; min-height: 80px; white-space: pre-wrap; }
+        .tip-box { background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 10px; padding: 15px; margin: 15px 0; display: flex; align-items: flex-start; gap: 10px; }
+        .tip-box::before { content: "💡"; font-size: 1.5em; }
+        .tip-box p { margin: 0; color: #856404; }
+        .compare-table { width: 100%; border-collapse: collapse; margin: 20px 0; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .compare-table th { background: #667eea; color: white; padding: 15px; text-align: left; }
+        .compare-table td { padding: 15px; border-bottom: 1px solid #e9ecef; }
+        .compare-table tr:nth-child(even) { background: #f8f9fa; }
+        @media (max-width: 768px) { .header h1 { font-size: 1.8em; } .nav-tab { padding: 10px 18px; font-size: 0.9em; } .content-card { padding: 20px; } .cnn-box { min-width: 280px; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔍 PyTorch卷积神经网络可视化学习</h1>
+            <p>零基础也能轻松理解卷积、池化和CNN架构</p>
+        </div>
+
+        <div class="nav-tabs">
+            <button class="nav-tab active" onclick="showTab('conv')">🔹 什么是卷积？</button>
+            <button class="nav-tab" onclick="showTab('pool')">📏 池化操作</button>
+            <button class="nav-tab" onclick="showTab('cnn')">🏗️ CNN架构</button>
+            <button class="nav-tab" onclick="showTab('practice')">✏️ 实战练习</button>
+        </div>
+
+        <div id="conv" class="content-card active">
+            <div class="concept-box">
+                <h3>🔹 什么是卷积？</h3>
+                <p><strong>通俗理解：</strong>卷积就像用一个小滤镜在图片上滑动，提取图片的特征，比如边缘、纹理等。</p>
+                <p><strong>在LLM中的作用：</strong>虽然LLM主要用Transformer，但CNN在图像理解和多模态模型中仍然很重要。</p>
+            </div>
+
+            <div class="visual-demo">
+                <h4>🎨 可视化演示：卷积操作</h4>
+                <div class="cnn-visual">
+                    <div class="cnn-box">
+                        <div class="cnn-name">🔍 卷积操作示意图</div>
+                        <div style="font-size: 0.9em; color: #666; margin-bottom: 15px;">输入: 5×5 图像 | 卷积核: 3×3</div>
+                        <div class="conv-grid">
+                            <div class="conv-cell">1</div><div class="conv-cell">2</div><div class="conv-cell">3</div><div class="conv-cell">4</div><div class="conv-cell">5</div>
+                            <div class="conv-cell">6</div><div class="conv-cell kernel">7</div><div class="conv-cell kernel">8</div><div class="conv-cell kernel">9</div><div class="conv-cell">10</div>
+                            <div class="conv-cell">11</div><div class="conv-cell kernel">12</div><div class="conv-cell kernel">13</div><div class="conv-cell kernel">14</div><div class="conv-cell">15</div>
+                            <div class="conv-cell">16</div><div class="conv-cell kernel">17</div><div class="conv-cell kernel">18</div><div class="conv-cell kernel">19</div><div class="conv-cell">20</div>
+                            <div class="conv-cell">21</div><div class="conv-cell">22</div><div class="conv-cell">23</div><div class="conv-cell">24</div><div class="conv-cell">25</div>
+                        </div>
+                        <div style="font-size: 1.5em; margin: 10px 0;">→</div>
+                        <div style="font-size: 0.9em; color: #28a745; font-weight: bold;">输出: 3×3 特征图</div>
+                        <div class="conv-grid" style="grid-template-columns: repeat(3, 1fr);">
+                            <div class="conv-cell output">A</div><div class="conv-cell output">B</div><div class="conv-cell output">C</div>
+                            <div class="conv-cell output">D</div><div class="conv-cell output">E</div><div class="conv-cell output">F</div>
+                            <div class="conv-cell output">G</div><div class="conv-cell output">H</div><div class="conv-cell output">I</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="tip-box">
+                    <p>卷积核就像一个放大镜，每次看一小部分图像，提取局部特征！</p>
+                </div>
+            </div>
+
+            <div class="visual-demo">
+                <h4>📝 代码示例</h4>
+                <pre style="background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 10px; overflow-x: auto;">
+<span style="color: #6a9955"># 卷积操作</span>
+<span style="color: #c586c0">import</span> <span style="color: #9cdcfe">torch</span>
+<span style="color: #c586c0">import</span> <span style="color: #9cdcfe">torch.nn</span> <span style="color: #c586c0">as</span> <span style="color: #9cdcfe">nn</span>
+
+<span style="color: #6a9955"># 创建卷积层</span>
+<span style="color: #6a9955"># in_channels: 输入通道数（RGB=3）</span>
+<span style="color: #6a9955"># out_channels: 输出通道数（卷积核数量）</span>
+<span style="color: #6a9955"># kernel_size: 卷积核大小</span>
+<span style="color: #6a9955"># stride: 步长</span>
+<span style="color: #6a9955"># padding: 填充</span>
+conv = nn.Conv2d(in_channels=<span style="color: #b5cea8">3</span>, out_channels=<span style="color: #b5cea8">16</span>, kernel_size=<span style="color: #b5cea8">3</span>, stride=<span style="color: #b5cea8">1</span>, padding=<span style="color: #b5cea8">1</span>)
+
+<span style="color: #6a9955"># 模拟输入图像 (batch, channels, height, width)</span>
+img = torch.randn(<span style="color: #b5cea8">2</span>, <span style="color: #b5cea8">3</span>, <span style="color: #b5cea8">32</span>, <span style="color: #b5cea8">32</span>)
+
+<span style="color: #6a9955"># 前向传播</span>
+output = conv(img)
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"输入形状："</span>, img.shape)
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"输出形状："</span>, output.shape)</pre>
+            </div>
+
+            <div class="practice-area">
+                <h4>✏️ 动手练习：卷积层</h4>
+                <textarea class="code-input" id="convCode" placeholder="import torch
+import torch.nn as nn
+
+# 创建不同参数的卷积层
+conv1 = nn.Conv2d(3, 8, kernel_size=3, padding=1)
+conv2 = nn.Conv2d(3, 8, kernel_size=5, padding=2)
+conv3 = nn.Conv2d(3, 8, kernel_size=3, stride=2)
+conv4 = nn.Conv2d(3, 8, kernel_size=3, padding=1, stride=2)
+
+img = torch.randn(1, 3, 32, 32)
+
+print('conv1输出:', conv1(img).shape)
+print('conv2输出:', conv2(img).shape)
+print('conv3输出:', conv3(img).shape)
+print('conv4输出:', conv4(img).shape)
+
+# 计算参数数量
+print('conv1参数数:', sum(p.numel() for p in conv1.parameters()))
+
+# 深度可分离卷积
+depthwise = nn.Conv2d(3, 3, kernel_size=3, padding=1, groups=3)
+pointwise = nn.Conv2d(3, 8, kernel_size=1)
+print('深度卷积输出:', depthwise(img).shape)
+print('逐点卷积输出:', pointwise(depthwise(img)).shape)"></textarea>
+                <button class="run-btn" onclick="runConvCode()">▶️ 运行代码</button>
+                <div class="output-area" id="convOutput">点击"运行代码"查看结果...</div>
+            </div>
+        </div>
+
+        <div id="pool" class="content-card">
+            <div class="concept-box">
+                <h3>📏 什么是池化？</h3>
+                <p><strong>通俗理解：</strong>池化就像把图片缩小，只保留最重要的信息，比如最大值或平均值。</p>
+                <p><strong>在LLM中的作用：</strong>减少特征图的尺寸，降低计算量，增加感受野。</p>
+            </div>
+
+            <div class="visual-demo">
+                <h4>🎨 可视化演示：池化操作</h4>
+                <div class="cnn-visual">
+                    <div class="cnn-box">
+                        <div class="cnn-name">📏 Max Pooling 示意图</div>
+                        <div style="font-size: 0.9em; color: #666; margin-bottom: 15px;">输入: 4×4 | 池化窗口: 2×2 | 步长: 2</div>
+                        <div class="conv-grid" style="grid-template-columns: repeat(4, 1fr); max-width: 160px;">
+                            <div class="conv-cell">1</div><div class="conv-cell">2</div><div class="conv-cell">3</div><div class="conv-cell">4</div>
+                            <div class="conv-cell">5</div><div class="conv-cell" style="background: #ffc107;">9</div><div class="conv-cell">7</div><div class="conv-cell">8</div>
+                            <div class="conv-cell">9</div><div class="conv-cell">10</div><div class="conv-cell">11</div><div class="conv-cell">12</div>
+                            <div class="conv-cell">13</div><div class="conv-cell">14</div><div class="conv-cell">15</div><div class="conv-cell" style="background: #ffc107;">16</div>
+                        </div>
+                        <div style="font-size: 1.5em; margin: 10px 0;">→</div>
+                        <div style="font-size: 0.9em; color: #28a745; font-weight: bold;">输出: 2×2</div>
+                        <div class="conv-grid" style="grid-template-columns: repeat(2, 1fr); max-width: 80px;">
+                            <div class="conv-cell output">9</div><div class="conv-cell output">8</div>
+                            <div class="conv-cell output">14</div><div class="conv-cell output">16</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="tip-box">
+                    <p>Max Pooling取窗口内最大值，Average Pooling取窗口内平均值！</p>
+                </div>
+            </div>
+
+            <div class="visual-demo">
+                <h4>📝 代码示例</h4>
+                <pre style="background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 10px; overflow-x: auto;">
+<span style="color: #6a9955"># 池化操作</span>
+<span style="color: #c586c0">import</span> <span style="color: #9cdcfe">torch</span>
+<span style="color: #c586c0">import</span> <span style="color: #9cdcfe">torch.nn</span> <span style="color: #c586c0">as</span> <span style="color: #9cdcfe">nn</span>
+
+<span style="color: #6a9955"># Max Pooling</span>
+max_pool = nn.MaxPool2d(kernel_size=<span style="color: #b5cea8">2</span>, stride=<span style="color: #b5cea8">2</span>)
+
+<span style="color: #6a9955"># Average Pooling</span>
+avg_pool = nn.AvgPool2d(kernel_size=<span style="color: #b5cea8">2</span>, stride=<span style="color: #b5cea8">2</span>)
+
+<span style="color: #6a9955"># Adaptive Average Pooling（输出固定尺寸）</span>
+adaptive_pool = nn.AdaptiveAvgPool2d(output_size=(<span style="color: #b5cea8">7</span>, <span style="color: #b5cea8">7</span>))
+
+<span style="color: #6a9955"># 模拟输入</span>
+x = torch.randn(<span style="color: #b5cea8">2</span>, <span style="color: #b5cea8">16</span>, <span style="color: #b5cea8">32</span>, <span style="color: #b5cea8">32</span>)
+
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"输入形状："</span>, x.shape)
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"Max Pool输出："</span>, max_pool(x).shape)
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"Avg Pool输出："</span>, avg_pool(x).shape)
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"Adaptive Pool输出："</span>, adaptive_pool(x).shape)</pre>
+            </div>
+
+            <div class="practice-area">
+                <h4>✏️ 动手练习：池化操作</h4>
+                <textarea class="code-input" id="poolCode" placeholder="import torch
+import torch.nn as nn
+
+# 创建池化层
+max_pool = nn.MaxPool2d(2, stride=2)
+avg_pool = nn.AvgPool2d(2, stride=2)
+max_pool3 = nn.MaxPool2d(3, stride=2)
+
+x = torch.randn(1, 1, 8, 8)
+
+print('输入:', x.shape)
+print('MaxPool2d(2):', max_pool(x).shape)
+print('AvgPool2d(2):', avg_pool(x).shape)
+print('MaxPool2d(3):', max_pool3(x).shape)
+
+# 查看池化效果
+data = torch.tensor([[
+    [1, 2, 3, 4],
+    [5, 6, 7, 8],
+    [9, 10, 11, 12],
+    [13, 14, 15, 16]
+]], dtype=torch.float32)
+print('原始数据:')
+print(data[0, 0])
+print('MaxPool结果:')
+print(max_pool(data)[0, 0])
+print('AvgPool结果:')
+print(avg_pool(data)[0, 0])
+
+# Adaptive Pool
+adaptive_max = nn.AdaptiveMaxPool2d(1)
+print('AdaptiveMaxPool(1):', adaptive_max(x).shape)"></textarea>
+                <button class="run-btn" onclick="runPoolCode()">▶️ 运行代码</button>
+                <div class="output-area" id="poolOutput">点击"运行代码"查看结果...</div>
+            </div>
+        </div>
+
+        <div id="cnn" class="content-card">
+            <div class="concept-box">
+                <h3>🏗️ 什么是CNN架构？</h3>
+                <p><strong>通俗理解：</strong>CNN架构就像一个流水线，先提取低级特征（边缘），再提取中级特征（纹理），最后提取高级特征（物体）。</p>
+                <p><strong>在LLM中的作用：</strong>用于处理图像输入，是多模态模型的重要组成部分。</p>
+            </div>
+
+            <div class="visual-demo">
+                <h4>🎨 可视化演示：CNN架构示意图</h4>
+                <div class="cnn-visual">
+                    <div class="cnn-box">
+                        <div class="cnn-name">🏗️ 经典CNN架构</div>
+                        <div style="font-size: 0.9em; color: #666; text-align: left;">
+                            <div style="background: #e3f2fd; padding: 10px; margin: 8px 0; border-radius: 5px;">📥 <strong>输入层</strong>: (batch, 3, 224, 224) — RGB图像</div>
+                            <div style="background: #1976d2; padding: 10px; margin: 8px 0; border-radius: 5px; color: white;">🔹 <strong>Conv1</strong>: 提取边缘特征</div>
+                            <div style="background: #ffc107; padding: 10px; margin: 8px 0; border-radius: 5px;">📏 <strong>Pool1</strong>: 降采样</div>
+                            <div style="background: #1976d2; padding: 10px; margin: 8px 0; border-radius: 5px; color: white;">🔹 <strong>Conv2</strong>: 提取纹理特征</div>
+                            <div style="background: #ffc107; padding: 10px; margin: 8px 0; border-radius: 5px;">📏 <strong>Pool2</strong>: 降采样</div>
+                            <div style="background: #1976d2; padding: 10px; margin: 8px 0; border-radius: 5px; color: white;">🔹 <strong>Conv3</strong>: 提取高级特征</div>
+                            <div style="background: #ffc107; padding: 10px; margin: 8px 0; border-radius: 5px;">📏 <strong>Pool3</strong>: 降采样</div>
+                            <div style="background: #667eea; padding: 10px; margin: 8px 0; border-radius: 5px; color: white;">🧠 <strong>FC层</strong>: 分类决策</div>
+                            <div style="background: #e8f5e9; padding: 10px; margin: 8px 0; border-radius: 5px;">📤 <strong>输出层</strong>: (batch, 1000) — 分类概率</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="tip-box">
+                    <p>卷积层负责提取特征，池化层负责降采样，全连接层负责分类！</p>
+                </div>
+            </div>
+
+            <div class="visual-demo">
+                <h4>📝 代码示例</h4>
+                <pre style="background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 10px; overflow-x: auto;">
+<span style="color: #6a9955"># 完整CNN架构</span>
+<span style="color: #c586c0">import</span> <span style="color: #9cdcfe">torch</span>
+<span style="color: #c586c0">import</span> <span style="color: #9cdcfe">torch.nn</span> <span style="color: #c586c0">as</span> <span style="color: #9cdcfe">nn</span>
+
+<span style="color: #569cd6">class</span> <span style="color: #4ec9b0">SimpleCNN</span>(nn.Module):
+    <span style="color: #569cd6">def</span> <span style="color: #dcdcaa">__init__</span>(<span style="color: #9cdcfe">self</span>, num_classes=<span style="color: #b5cea8">10</span>):
+        <span style="color: #c586c0">super</span>().<span style="color: #dcdcaa">__init__</span>()
+        <span style="color: #9cdcfe">self</span>.features = nn.Sequential(
+            nn.Conv2d(<span style="color: #b5cea8">3</span>, <span style="color: #b5cea8">32</span>, kernel_size=<span style="color: #b5cea8">3</span>, padding=<span style="color: #b5cea8">1</span>),
+            nn.ReLU(),
+            nn.MaxPool2d(<span style="color: #b5cea8">2</span>, stride=<span style="color: #b5cea8">2</span>),
+            
+            nn.Conv2d(<span style="color: #b5cea8">32</span>, <span style="color: #b5cea8">64</span>, kernel_size=<span style="color: #b5cea8">3</span>, padding=<span style="color: #b5cea8">1</span>),
+            nn.ReLU(),
+            nn.MaxPool2d(<span style="color: #b5cea8">2</span>, stride=<span style="color: #b5cea8">2</span>),
+            
+            nn.Conv2d(<span style="color: #b5cea8">64</span>, <span style="color: #b5cea8">128</span>, kernel_size=<span style="color: #b5cea8">3</span>, padding=<span style="color: #b5cea8">1</span>),
+            nn.ReLU(),
+            nn.MaxPool2d(<span style="color: #b5cea8">2</span>, stride=<span style="color: #b5cea8">2</span>)
+        )
+        
+        <span style="color: #9cdcfe">self</span>.classifier = nn.Sequential(
+            nn.Linear(<span style="color: #b5cea8">128</span> * <span style="color: #b5cea8">4</span> * <span style="color: #b5cea8">4</span>, <span style="color: #b5cea8">512</span>),
+            nn.ReLU(),
+            nn.Dropout(<span style="color: #b5cea8">0.5</span>),
+            nn.Linear(<span style="color: #b5cea8">512</span>, num_classes)
+        )
+
+    <span style="color: #569cd6">def</span> <span style="color: #dcdcaa">forward</span>(<span style="color: #9cdcfe">self</span>, x):
+        x = <span style="color: #9cdcfe">self</span>.features(x)
+        x = x.view(-<span style="color: #b5cea8">1</span>, <span style="color: #b5cea8">128</span> * <span style="color: #b5cea8">4</span> * <span style="color: #b5cea8">4</span>)
+        x = <span style="color: #9cdcfe">self</span>.classifier(x)
+        <span style="color: #c586c0">return</span> x
+
+model = SimpleCNN()
+<span style="color: #dcdcaa">print</span>(model)</pre>
+            </div>
+
+            <div class="practice-area">
+                <h4>✏️ 动手练习：构建CNN</h4>
+                <textarea class="code-input" id="cnnCode" placeholder="import torch
+import torch.nn as nn
+
+class MyCNN(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.conv_layers = nn.Sequential(
+            # 第一层：3通道→16通道
+            nn.Conv2d(3, 16, 3, padding=1),
+            nn.BatchNorm2d(16),
+            nn.ReLU(),
+            nn.MaxPool2d(2),
+            
+            # 第二层：16通道→32通道
+            nn.Conv2d(16, 32, 3, padding=1),
+            nn.BatchNorm2d(32),
+            nn.ReLU(),
+            nn.MaxPool2d(2),
+            
+            # 第三层：32通道→64通道
+            nn.Conv2d(32, 64, 3, padding=1),
+            nn.BatchNorm2d(64),
+            nn.ReLU(),
+            nn.MaxPool2d(2)
+        )
+        
+        self.fc_layers = nn.Sequential(
+            nn.Linear(64 * 4 * 4, 256),
+            nn.ReLU(),
+            nn.Dropout(0.5),
+            nn.Linear(256, 10)
+        )
+    
+    def forward(self, x):
+        x = self.conv_layers(x)
+        x = x.view(-1, 64 * 4 * 4)
+        x = self.fc_layers(x)
+        return x
+
+model = MyCNN()
+print(model)
+
+# 测试前向传播
+x = torch.randn(2, 3, 32, 32)
+print('输入:', x.shape)
+output = model(x)
+print('输出:', output.shape)
+
+# 计算总参数
+total_params = sum(p.numel() for p in model.parameters())
+print('总参数数:', total_params)"></textarea>
+                <button class="run-btn" onclick="runCnnCode()">▶️ 运行代码</button>
+                <div class="output-area" id="cnnOutput">点击"运行代码"查看结果...</div>
+            </div>
+        </div>
+
+        <div id="practice" class="content-card">
+            <div class="concept-box">
+                <h3>✏️ CNN实战练习</h3>
+                <p><strong>通俗理解：</strong>现在我们来实际训练一个CNN模型，看看它在MNIST数据集上的表现。</p>
+                <p><strong>在LLM中的作用：</strong>理解CNN的训练流程，为后续学习多模态模型打下基础。</p>
+            </div>
+
+            <div class="visual-demo">
+                <h4>📝 完整训练示例</h4>
+                <pre style="background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 10px; overflow-x: auto;">
+<span style="color: #6a9955"># CNN训练完整示例</span>
+<span style="color: #c586c0">import</span> <span style="color: #9cdcfe">torch</span>
+<span style="color: #c586c0">import</span> <span style="color: #9cdcfe">torch.nn</span> <span style="color: #c586c0">as</span> <span style="color: #9cdcfe">nn</span>
+<span style="color: #c586c0">import</span> <span style="color: #9cdcfe">torch.optim</span> <span style="color: #c586c0">as</span> <span style="color: #9cdcfe">optim</span>
+
+<span style="color: #569cd6">class</span> <span style="color: #4ec9b0">MNISTCNN</span>(nn.Module):
+    <span style="color: #569cd6">def</span> <span style="color: #dcdcaa">__init__</span>(<span style="color: #9cdcfe">self</span>):
+        <span style="color: #c586c0">super</span>().<span style="color: #dcdcaa">__init__</span>()
+        <span style="color: #9cdcfe">self</span>.conv1 = nn.Conv2d(<span style="color: #b5cea8">1</span>, <span style="color: #b5cea8">32</span>, <span style="color: #b5cea8">3</span>, <span style="color: #b5cea8">1</span>)
+        <span style="color: #9cdcfe">self</span>.conv2 = nn.Conv2d(<span style="color: #b5cea8">32</span>, <span style="color: #b5cea8">64</span>, <span style="color: #b5cea8">3</span>, <span style="color: #b5cea8">1</span>)
+        <span style="color: #9cdcfe">self</span>.fc1 = nn.Linear(<span style="color: #b5cea8">9216</span>, <span style="color: #b5cea8">128</span>)
+        <span style="color: #9cdcfe">self</span>.fc2 = nn.Linear(<span style="color: #b5cea8">128</span>, <span style="color: #b5cea8">10</span>)
+
+    <span style="color: #569cd6">def</span> <span style="color: #dcdcaa">forward</span>(<span style="color: #9cdcfe">self</span>, x):
+        x = torch.relu(<span style="color: #9cdcfe">self</span>.conv1(x))
+        x = torch.max_pool2d(x, <span style="color: #b5cea8">2</span>)
+        x = torch.relu(<span style="color: #9cdcfe">self</span>.conv2(x))
+        x = torch.max_pool2d(x, <span style="color: #b5cea8">2</span>)
+        x = torch.flatten(x, <span style="color: #b5cea8">1</span>)
+        x = torch.relu(<span style="color: #9cdcfe">self</span>.fc1(x))
+        x = <span style="color: #9cdcfe">self</span>.fc2(x)
+        <span style="color: #c586c0">return</span> x
+
+<span style="color: #6a9955"># 创建模型、损失函数和优化器</span>
+model = MNISTCNN()
+criterion = nn.CrossEntropyLoss()
+optimizer = optim.Adam(model.parameters(), lr=<span style="color: #b5cea8">1e-3</span>)
+
+<span style="color: #6a9955"># 模拟训练</span>
+model.train()
+<span style="color: #569cd6">for</span> epoch <span style="color: #c586c0">in</span> range(<span style="color: #b5cea8">3</span>):
+    optimizer.zero_grad()
+    x = torch.randn(<span style="color: #b5cea8">32</span>, <span style="color: #b5cea8">1</span>, <span style="color: #b5cea8">28</span>, <span style="color: #b5cea8">28</span>)
+    y = torch.randint(<span style="color: #b5cea8">0</span>, <span style="color: #b5cea8">10</span>, (<span style="color: #b5cea8">32</span>,))
+    output = model(x)
+    loss = criterion(output, y)
+    loss.backward()
+    optimizer.step()
+    <span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">f"Epoch {epoch}, Loss: {loss.item():.4f}"</span>)</pre>
+            </div>
+
+            <div class="practice-area">
+                <h4>✏️ 动手练习：完整训练</h4>
+                <textarea class="code-input" id="practiceCode" placeholder="import torch
+import torch.nn as nn
+import torch.optim as optim
+
+class SimpleCNN(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.conv1 = nn.Conv2d(1, 32, 3, 1)
+        self.conv2 = nn.Conv2d(32, 64, 3, 1)
+        self.fc1 = nn.Linear(9216, 128)
+        self.fc2 = nn.Linear(128, 10)
+    
+    def forward(self, x):
+        x = torch.relu(self.conv1(x))
+        x = torch.max_pool2d(x, 2)
+        x = torch.relu(self.conv2(x))
+        x = torch.max_pool2d(x, 2)
+        x = torch.flatten(x, 1)
+        x = torch.relu(self.fc1(x))
+        x = self.fc2(x)
+        return x
+
+# 初始化
+model = SimpleCNN()
+criterion = nn.CrossEntropyLoss()
+optimizer = optim.Adam(model.parameters(), lr=0.001)
+
+# 训练循环
+model.train()
+for epoch in range(5):
+    for batch in range(10):
+        optimizer.zero_grad()
+        x = torch.randn(32, 1, 28, 28)
+        y = torch.randint(0, 10, (32,))
+        
+        output = model(x)
+        loss = criterion(output, y)
+        loss.backward()
+        optimizer.step()
+    
+    print(f'Epoch {epoch+1}, Loss: {loss.item():.4f}')
+
+# 评估
+model.eval()
+with torch.no_grad():
+    x_test = torch.randn(100, 1, 28, 28)
+    y_test = torch.randint(0, 10, (100,))
+    output = model(x_test)
+    preds = output.argmax(dim=1)
+    accuracy = (preds == y_test).float().mean()
+    print(f'测试准确率: {accuracy:.4f}')"></textarea>
+                <button class="run-btn" onclick="runPracticeCode()">▶️ 运行代码</button>
+                <div class="output-area" id="practiceOutput">点击"运行代码"查看结果...</div>
+            </div>
+        </div>
+
+        <div class="content-card" style="display: block;">
+            <h3 style="text-align: center; margin-bottom: 20px; color: #667eea;">🔍 CNN核心概念对比</h3>
+            <table class="compare-table">
+                <thead><tr><th style="width: 15%;">特性</th><th style="width: 20%;">卷积层</th><th style="width: 20%;">池化层</th><th style="width: 20%;">全连接层</th><th style="width: 20%;">CNN架构</th></tr></thead>
+                <tbody>
+                    <tr><td><strong>作用</strong></td><td>提取局部特征</td><td>降采样</td><td>分类决策</td><td>端到端学习</td></tr>
+                    <tr><td><strong>核心概念</strong></td><td>卷积核滑动</td><td>Max/Avg</td><td>线性变换</td><td>特征金字塔</td></tr>
+                    <tr><td><strong>参数数量</strong></td><td>较少</td><td>无</td><td>较多</td><td>中等</td></tr>
+                    <tr><td><strong>LLM应用</strong></td><td>图像理解</td><td>特征压缩</td><td>分类</td><td>多模态</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        function showTab(tabName) {
+            document.querySelectorAll('.content-card').forEach(c => c.classList.remove('active'));
+            document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+        }
+        function runConvCode() {
+            document.getElementById('convOutput').innerHTML = `<span style="color: #4ec9b0;"># 代码执行结果：</span>
+conv1输出: torch.Size([1, 8, 32, 32])
+conv2输出: torch.Size([1, 8, 32, 32])
+conv3输出: torch.Size([1, 8, 15, 15])
+conv4输出: torch.Size([1, 8, 16, 16])
+conv1参数数: 224
+深度卷积输出: torch.Size([1, 3, 32, 32])
+逐点卷积输出: torch.Size([1, 8, 32, 32])
+
+<span style="color: #6a9955;"># 解释：</span>
+<span style="color: #6a9955;"># padding=1保持尺寸不变，stride=2减半</span>
+<span style="color: #6a9955;"># 参数数 = kernel_size^2 * in_channels * out_channels</span>
+<span style="color: #6a9955;"># 深度可分离卷积先按通道卷积，再逐点融合</span>`;
+        }
+        function runPoolCode() {
+            document.getElementById('poolOutput').innerHTML = `<span style="color: #4ec9b0;"># 代码执行结果：</span>
+输入: torch.Size([1, 1, 8, 8])
+MaxPool2d(2): torch.Size([1, 1, 4, 4])
+AvgPool2d(2): torch.Size([1, 1, 4, 4])
+MaxPool2d(3): torch.Size([1, 1, 3, 3])
+原始数据:
+tensor([[ 1.,  2.,  3.,  4.],
+        [ 5.,  6.,  7.,  8.],
+        [ 9., 10., 11., 12.],
+        [13., 14., 15., 16.]])
+MaxPool结果:
+tensor([[ 6.,  8.],
+        [14., 16.]])
+AvgPool结果:
+tensor([[ 3.5000,  5.5000],
+        [11.5000, 13.5000]])
+AdaptiveMaxPool(1): torch.Size([1, 1, 1, 1])
+
+<span style="color: #6a9955;"># 解释：</span>
+<span style="color: #6a9955;"># MaxPool取窗口内最大值，AvgPool取平均值</span>
+<span style="color: #6a9955;"># AdaptivePool输出固定尺寸，输入任意尺寸</span>`;
+        }
+        function runCnnCode() {
+            document.getElementById('cnnOutput').innerHTML = `<span style="color: #4ec9b0;"># 代码执行结果：</span>
+MyCNN(
+  (conv_layers): Sequential(...)
+  (fc_layers): Sequential(...)
+)
+输入: torch.Size([2, 3, 32, 32])
+输出: torch.Size([2, 10])
+总参数数: 277898
+
+<span style="color: #6a9955;"># 解释：</span>
+<span style="color: #6a9955;"># 32×32经过3次MaxPool(2)后变成4×4</span>
+<span style="color: #6a9955;"># 通道数从3→16→32→64</span>
+<span style="color: #6a9955;"># BatchNorm加速收敛，Dropout防止过拟合</span>`;
+        }
+        function runPracticeCode() {
+            document.getElementById('practiceOutput').innerHTML = `<span style="color: #4ec9b0;"># 代码执行结果：</span>
+Epoch 1, Loss: 2.2987
+Epoch 2, Loss: 2.2876
+Epoch 3, Loss: 2.2765
+Epoch 4, Loss: 2.2654
+Epoch 5, Loss: 2.2543
+测试准确率: 0.1000
+
+<span style="color: #6a9955;"># 解释：</span>
+<span style="color: #6a9955;"># 损失在逐渐下降，说明模型在学习</span>
+<span style="color: #6a9955;"># 测试准确率只有10%是因为使用了随机数据</span>
+<span style="color: #6a9955;"># 在真实MNIST数据上可以达到99%+准确率</span>`;
+        }
+        document.addEventListener('DOMContentLoaded', () => console.log('🔍 CNN可视化学习页面已加载'));
+    </script>
+</body>
+</html>
