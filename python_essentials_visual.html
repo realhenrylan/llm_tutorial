@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Python基础可视化学习 - 零基础友好版</title>
+    <style>
+        /* ==================== 基础样式重置 ==================== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        /* ==================== 容器布局 ==================== */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* ==================== 标题区域 ==================== */
+        .header {
+            text-align: center;
+            padding: 40px 20px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        /* ==================== 导航标签页 ==================== */
+        .nav-tabs {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .nav-tab {
+            padding: 12px 24px;
+            background: rgba(255,255,255,0.2);
+            border: 2px solid white;
+            color: white;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1em;
+            font-weight: bold;
+        }
+
+        .nav-tab:hover {
+            background: white;
+            color: #667eea;
+        }
+
+        .nav-tab.active {
+            background: white;
+            color: #667eea;
+        }
+
+        /* ==================== 内容卡片 ==================== */
+        .content-card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            display: none;
+        }
+
+        .content-card.active {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ==================== 概念说明区域 ==================== */
+        .concept-box {
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            border-left: 5px solid #667eea;
+        }
+
+        .concept-box h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .concept-box p {
+            line-height: 1.8;
+            color: #555;
+            margin-bottom: 10px;
+        }
+
+        /* ==================== 可视化演示区域 ==================== */
+        .visual-demo {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            border: 2px solid #e9ecef;
+        }
+
+        .visual-demo h4 {
+            color: #495057;
+            margin-bottom: 20px;
+            font-size: 1.1em;
+        }
+
+        /* 列表可视化 */
+        .list-visual {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 20px 0;
+        }
+
+        .list-item {
+            width: 80px;
+            height: 60px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            font-weight: bold;
+            font-size: 1.1em;
+            position: relative;
+            animation: slideIn 0.5s ease;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: scale(0); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .list-index {
+            position: absolute;
+            top: -20px;
+            font-size: 0.8em;
+            color: #666;
+        }
+
+        /* 字典可视化 */
+        .dict-visual {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 20px 0;
+        }
+
+        .dict-pair {
+            display: flex;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .dict-key {
+            background: #667eea;
+            color: white;
+            padding: 15px 20px;
+            font-weight: bold;
+        }
+
+        .dict-value {
+            background: #f8f9fa;
+            color: #333;
+            padding: 15px 20px;
+            border: 2px solid #667eea;
+            border-left: none;
+        }
+
+        /* 类可视化 */
+        .class-visual {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .class-box {
+            border: 3px solid #667eea;
+            border-radius: 15px;
+            padding: 20px;
+            min-width: 300px;
+            text-align: center;
+            background: white;
+        }
+
+        .class-name {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .class-attributes {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .attribute {
+            background: #f8f9fa;
+            padding: 8px 15px;
+            border-radius: 8px;
+            border-left: 3px solid #28a745;
+        }
+
+        .class-instance {
+            border: 3px dashed #28a745;
+            border-radius: 15px;
+            padding: 20px;
+            min-width: 300px;
+            text-align: center;
+            background: #f8fff8;
+        }
+
+        /* with语句可视化 */
+        .with-visual {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0;
+        }
+
+        .with-block {
+            border: 3px solid #667eea;
+            border-radius: 15px;
+            padding: 20px;
+            min-width: 400px;
+            text-align: center;
+            position: relative;
+        }
+
+        .with-header {
+            background: #667eea;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 10px 10px 0 0;
+            font-weight: bold;
+        }
+
+        .with-body {
+            border: 2px solid #e9ecef;
+            border-top: none;
+            border-radius: 0 0 10px 10px;
+            padding: 20px;
+            background: white;
+        }
+
+        .arrow-down {
+            font-size: 2em;
+            color: #667eea;
+            margin: 10px 0;
+        }
+
+        /* ==================== 交互练习区域 ==================== */
+        .practice-area {
+            background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
+            border-radius: 15px;
+            padding: 25px;
+            margin-top: 25px;
+        }
+
+        .practice-area h4 {
+            color: #1976d2;
+            margin-bottom: 15px;
+        }
+
+        .code-input {
+            width: 100%;
+            min-height: 120px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.95em;
+            resize: vertical;
+            margin-bottom: 15px;
+        }
+
+        .run-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: bold;
+            transition: transform 0.2s;
+        }
+
+        .run-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .output-area {
+            background: #1e1e1e;
+            color: #4ec9b0;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 15px;
+            font-family: 'Courier New', monospace;
+            min-height: 80px;
+            white-space: pre-wrap;
+        }
+
+        /* ==================== 步骤指示器 ==================== */
+        .step-indicator {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+
+        .step {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .step-number {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: #e9ecef;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: #666;
+        }
+
+        .step.active .step-number {
+            background: #667eea;
+            color: white;
+        }
+
+        .step-label {
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .step.active .step-label {
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        /* ==================== 提示框 ==================== */
+        .tip-box {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .tip-box::before {
+            content: "💡";
+            font-size: 1.5em;
+        }
+
+        .tip-box p {
+            margin: 0;
+            color: #856404;
+        }
+
+        /* ==================== 对比表格 ==================== */
+        .compare-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .compare-table th {
+            background: #667eea;
+            color: white;
+            padding: 15px;
+            text-align: left;
+        }
+
+        .compare-table td {
+            padding: 15px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .compare-table tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+
+        /* ==================== 动画效果 ==================== */
+        .fade-in {
+            animation: fadeIn 0.6s ease;
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        /* ==================== 响应式设计 ==================== */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8em;
+            }
+
+            .nav-tab {
+                padding: 10px 18px;
+                font-size: 0.9em;
+            }
+
+            .content-card {
+                padding: 20px;
+            }
+
+            .list-item {
+                width: 60px;
+                height: 50px;
+                font-size: 0.9em;
+            }
+
+            .with-block {
+                min-width: 280px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 页面标题 -->
+        <div class="header">
+            <h1>🐍 Python基础可视化学习</h1>
+            <p>零基础也能轻松理解 list / dict / class / with</p>
+        </div>
+
+        <!-- 导航标签页 -->
+        <div class="nav-tabs">
+            <button class="nav-tab active" onclick="showTab('list')">📋 List 列表</button>
+            <button class="nav-tab" onclick="showTab('dict')">📖 Dict 字典</button>
+            <button class="nav-tab" onclick="showTab('class')">🏗️ Class 类</button>
+            <button class="nav-tab" onclick="showTab('with')">🔒 With 语句</button>
+        </div>
+
+        <!-- ==================== List 列表内容 ==================== -->
+        <div id="list" class="content-card active">
+            <div class="concept-box">
+                <h3>📋 List 列表是什么？</h3>
+                <p><strong>通俗理解：</strong>List就像一个排队的队伍，每个人（数据）都有自己的位置（索引），按顺序排列。</p>
+                <p><strong>在LLM中的作用：</strong>用来存储顺序数据，比如训练时的批次数据、token序列等。</p>
+            </div>
+
+            <div class="visual-demo">
+                <h4>🎨 可视化演示：List就像排队</h4>
+                <div class="list-visual" id="listVisual">
+                    <div class="list-item">
+                        <span class="list-index">0</span>
+                        "llm"
+                    </div>
+                    <div class="list-item">
+                        <span class="list-index">1</span>
+                        "algo"
+                    </div>
+                    <div class="list-item">
+                        <span class="list-index">2</span>
+                        "leetcode"
+                    </div>
+                </div>
+                <div class="tip-box">
+                    <p>每个元素都有对应的索引（从0开始），就像排队时的序号一样！</p>
+                </div>
+            </div>
+
+            <div class="visual-demo">
+                <h4>📝 代码示例</h4>
+                <pre style="background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 10px; overflow-x: auto;">
+<span style="color: #6a9955"># 创建一个列表</span>
+tokens = [<span style="color: #ce9178">"llm"</span>, <span style="color: #ce9178">"algo"</span>, <span style="color: #ce9178">"leetcode"</span>]
+
+<span style="color: #6a9955"># 通过索引访问元素</span>
+<span style="color: #dcdcaa">print</span>(tokens[<span style="color: #b5cea8">0</span>])  <span style="color: #6a9955"># 输出: "llm"</span>
+<span style="color: #dcdcaa">print</span>(tokens[<span style="color: #b5cea8">1</span>])  <span style="color: #6a9955"># 输出: "algo"</span>
+
+<span style="color: #6a9955"># 添加元素</span>
+tokens.append(<span style="color: #ce9178">"python"</span>)
+<span style="color: #dcdcaa">print</span>(tokens)  <span style="color: #6a9955"># ["llm", "algo", "leetcode", "python"]</span></pre>
+            </div>
+
+            <div class="practice-area">
+                <h4>✏️ 动手练习：创建一个列表</h4>
+                <textarea class="code-input" id="listCode" placeholder="# 试着创建一个列表并打印出来
+my_list = ["hello", "world"]
+print(my_list)
+print(my_list[0])"># 试着创建一个列表并打印出来
+my_list = ["hello", "world"]
+print(my_list)
+print(my_list[0])</textarea>
+                <button class="run-btn" onclick="runListCode()">▶️ 运行代码</button>
+                <div class="output-area" id="listOutput">点击"运行代码"查看结果...</div>
+            </div>
+        </div>
+
+        <!-- ==================== Dict 字典内容 ==================== -->
+        <div id="dict" class="content-card">
+            <div class="concept-box">
+                <h3>📖 Dict 字典是什么？</h3>
+                <p><strong>通俗理解：</strong>Dict就像一本字典，每个词（键key）对应一个解释（值value），通过词能快速找到解释。</p>
+                <p><strong>在LLM中的作用：</strong>用来存储配置信息、模型参数、统计结果等命名状态。</p>
+            </div>
+
+            <div class="visual-demo">
+                <h4>🎨 可视化演示：Dict就像查字典</h4>
+                <div class="dict-visual" id="dictVisual">
+                    <div class="dict-pair">
+                        <div class="dict-key">"name"</div>
+                        <div class="dict-value">"TinyLM"</div>
+                    </div>
+                    <div class="dict-pair">
+                        <div class="dict-key">"precision"</div>
+                        <div class="dict-value">"bf16"</div>
+                    </div>
+                    <div class="dict-pair">
+                        <div class="dict-key">"batch_size"</div>
+                        <div class="dict-value">4</div>
+                    </div>
+                </div>
+                <div class="tip-box">
+                    <p>每个键值对就像字典里的词条，通过键（key）快速找到对应的值（value）！</p>
+                </div>
+            </div>
+
+            <div class="visual-demo">
+                <h4>📝 代码示例</h4>
+                <pre style="background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 10px; overflow-x: auto;">
+<span style="color: #6a9955"># 创建一个字典</span>
+config = {
+    <span style="color: #ce9178">"name"</span>: <span style="color: #ce9178">"TinyLM"</span>,
+    <span style="color: #ce9178">"precision"</span>: <span style="color: #ce9178">"bf16"</span>,
+    <span style="color: #ce9178">"batch_size"</span>: <span style="color: #b5cea8">4</span>
+}
+
+<span style="color: #6a9955"># 通过键访问值</span>
+<span style="color: #dcdcaa">print</span>(config[<span style="color: #ce9178">"name"</span>])      <span style="color: #6a9955"># 输出: "TinyLM"</span>
+<span style="color: #dcdcaa">print</span>(config[<span style="color: #ce9178">"batch_size"</span>])  <span style="color: #6a9955"># 输出: 4</span>
+
+<span style="color: #6a9955"># 修改值</span>
+config[<span style="color: #ce9178">"batch_size"</span>] = <span style="color: #b5cea8">8</span>
+<span style="color: #dcdcaa">print</span>(config)  <span style="color: #6a9955"># {"name": "TinyLM", "precision": "bf16", "batch_size": 8}</span></pre>
+            </div>
+
+            <div class="practice-area">
+                <h4>✏️ 动手练习：创建一个字典</h4>
+                <textarea class="code-input" id="dictCode" placeholder="# 试着创建一个字典并打印出来
+my_dict = {&quot;name&quot;: &quot;Alice&quot;, &quot;age&quot;: 25}
+print(my_dict)
+print(my_dict[&quot;name&quot;])"># 试着创建一个字典并打印出来
+my_dict = {&quot;name&quot;: &quot;Alice&quot;, &quot;age&quot;: 25}
+print(my_dict)
+print(my_dict[&quot;name&quot;])</textarea>
+                <button class="run-btn" onclick="runDictCode()">▶️ 运行代码</button>
+                <div class="output-area" id="dictOutput">点击"运行代码"查看结果...</div>
+            </div>
+        </div>
+
+        <!-- ==================== Class 类内容 ==================== -->
+        <div id="class" class="content-card">
+            <div class="concept-box">
+                <h3>🏗️ Class 类是什么？</h3>
+                <p><strong>通俗理解：</strong>Class就像一个模具，用来批量生产具有相同特征的对象。比如用同一个模具做饼干。</p>
+                <p><strong>在LLM中的作用：</strong>用来封装配置、状态、结果等，让代码更整洁、可复用。</p>
+            </div>
+
+            <div class="visual-demo">
+                <h4>🎨 可视化演示：Class就像做饼干</h4>
+                <div class="class-visual">
+                    <div class="class-box">
+                        <div class="class-name">🍪 饼干模具 (Class)</div>
+                        <div class="class-attributes">
+                            <div class="attribute">形状：圆形</div>
+                            <div class="attribute">大小：中等</div>
+                            <div class="attribute">方法：烘焙()</div>
+                        </div>
+                    </div>
+                    <div class="arrow-down">⬇️</div>
+                    <div class="class-instance">
+                        <div class="class-name">🍪 饼干1 (实例1)</div>
+                        <div class="class-attributes">
+                            <div class="attribute">形状：圆形</div>
+                            <div class="attribute">大小：中等</div>
+                        </div>
+                    </div>
+                    <div class="class-instance">
+                        <div class="class-name">🍪 饼干2 (实例2)</div>
+                        <div class="class-attributes">
+                            <div class="attribute">形状：圆形</div>
+                            <div class="attribute">大小：中等</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="tip-box">
+                    <p>Class是模板，实例是根据模板创建的具体对象。修改模板会影响所有实例，但每个实例可以有自己的独特属性！</p>
+                </div>
+            </div>
+
+            <div class="visual-demo">
+                <h4>📝 代码示例</h4>
+                <pre style="background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 10px; overflow-x: auto;">
+<span style="color: #c586c0">from</span> dataclasses <span style="color: #c586c0">import</span> dataclass
+
+<span style="color: #6a9955"># 定义一个类（模具）</span>
+<span style="color: #646695">@dataclass</span>
+<span style="color: #569cd6">class</span> <span style="color: #4ec9b0">BatchSummary</span>:
+    loss: <span style="color: #4ec9b0">float</span>
+    step: <span style="color: #4ec9b0">int</span>
+    extras: <span style="color: #4ec9b0">dict</span>
+    
+    <span style="color: #6a9955"># 方法：生成摘要字符串</span>
+    <span style="color: #569cd6">def</span> <span style="color: #dcdcaa">short</span>(<span style="color: #9cdcfe">self</span>):
+        <span style="color: #c586c0">return</span> <span style="color: #ce9178">f"step={self.step}, loss={self.loss:.4f}"</span>
+
+<span style="color: #6a9955"># 创建实例（用模具做饼干）</span>
+summary = BatchSummary(loss=<span style="color: #b5cea8">0.1234</span>, step=<span style="color: #b5cea8">12</span>, extras={<span style="color: #ce9178">"lr"</span>: <span style="color: #b5cea8">1e-4</span>})
+<span style="color: #dcdcaa">print</span>(summary.short())  <span style="color: #6a9955"># 输出: "step=12, loss=0.1234"</span></pre>
+            </div>
+
+            <div class="practice-area">
+                <h4>✏️ 动手练习：创建一个类</h4>
+                <textarea class="code-input" id="classCode" placeholder="# 试着创建一个简单的类
+class Person:
+    def __init__(self, name, age):
+        self.name = name
+        self.age = age
+    
+    def introduce(self):
+        return f&quot;我叫{self.name}，今年{self.age}岁&quot;
+
+p = Person(&quot;小明&quot;, 20)
+print(p.introduce())"># 试着创建一个简单的类
+class Person:
+    def __init__(self, name, age):
+        self.name = name
+        self.age = age
+    
+    def introduce(self):
+        return f&quot;我叫{self.name}，今年{self.age}岁&quot;
+
+p = Person(&quot;小明&quot;, 20)
+print(p.introduce())</textarea>
+                <button class="run-btn" onclick="runClassCode()">▶️ 运行代码</button>
+                <div class="output-area" id="classOutput">点击"运行代码"查看结果...</div>
+            </div>
+        </div>
+
+        <!-- ==================== With 语句内容 ==================== -->
+        <div id="with" class="content-card">
+            <div class="concept-box">
+                <h3>🔒 With 语句是什么？</h3>
+                <p><strong>通俗理解：</strong>With就像一个自动开关，进入时打开资源，离开时自动关闭，不用担心忘记关。</p>
+                <p><strong>在LLM中的作用：</strong>管理文件、临时目录等资源，确保资源正确释放，避免内存泄漏。</p>
+            </div>
+
+            <div class="visual-demo">
+                <h4>🎨 可视化演示：With就像自动门</h4>
+                <div class="with-visual">
+                    <div class="with-block">
+                        <div class="with-header">🔓 with 语句开始 - 打开资源</div>
+                        <div class="with-body">
+                            <p>进入 with 块</p>
+                            <p>↓</p>
+                            <p>使用资源（如文件、临时目录）</p>
+                            <p>↓</p>
+                            <p>执行操作...</p>
+                        </div>
+                    </div>
+                    <div class="arrow-down">⬇️</div>
+                    <div class="with-block" style="border-color: #28a745;">
+                        <div class="with-header" style="background: #28a745;">🔒 with 语句结束 - 自动关闭资源</div>
+                        <div class="with-body">
+                            <p>离开 with 块</p>
+                            <p>↓</p>
+                            <p>自动清理资源</p>
+                            <p>↓</p>
+                            <p>无需手动关闭！</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="tip-box">
+                    <p>With语句确保即使发生错误，资源也会被正确关闭。这是Python的"上下文管理器"机制！</p>
+                </div>
+            </div>
+
+            <div class="visual-demo">
+                <h4>📝 代码示例</h4>
+                <pre style="background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 10px; overflow-x: auto;">
+<span style="color: #c586c0">from</span> pathlib <span style="color: #c586c0">import</span> Path
+<span style="color: #c586c0">from</span> tempfile <span style="color: #c586c0">import</span> TemporaryDirectory
+
+<span style="color: #6a9955"># 使用 with 管理临时目录</span>
+<span style="color: #c586c0">with</span> TemporaryDirectory() <span style="color: #c586c0">as</span> tmpdir:
+    root = Path(tmpdir)
+    report = root / <span style="color: #ce9178">'report.txt'</span>
+    report.write_text(<span style="color: #ce9178">'hello io'</span>, encoding=<span style="color: #ce9178">'utf-8'</span>)
+    <span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">'临时文件路径：'</span>, report)
+    <span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">'临时文件内容：'</span>, report.read_text(encoding=<span style="color: #ce9178">'utf-8'</span>))
+
+<span style="color: #6a9955"># with 块结束后，临时目录自动清理</span>
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">'✅ with 收尾完成'</span>)</pre>
+            </div>
+
+            <div class="practice-area">
+                <h4>✏️ 动手练习：使用 with 语句</h4>
+                <textarea class="code-input" id="withCode" placeholder="# 试着使用 with 语句
+with open(&quot;test.txt&quot;, &quot;w&quot;) as f:
+    f.write(&quot;Hello, World!&quot;)
+
+with open(&quot;test.txt&quot;, &quot;r&quot;) as f:
+    content = f.read()
+    print(content)
+
+print(&quot;文件已自动关闭！&quot;)
+"># 试着使用 with 语句
+with open(&quot;test.txt&quot;, &quot;w&quot;) as f:
+    f.write(&quot;Hello, World!&quot;)
+
+with open(&quot;test.txt&quot;, &quot;r&quot;) as f:
+    content = f.read()
+    print(content)
+
+print(&quot;文件已自动关闭！&quot;)</textarea>
+                <button class="run-btn" onclick="runWithCode()">▶️ 运行代码</button>
+                <div class="output-area" id="withOutput">点击"运行代码"查看结果...</div>
+            </div>
+        </div>
+
+        <!-- 总结对比表 -->
+        <div class="content-card" style="display: block;">
+            <h3 style="text-align: center; margin-bottom: 20px; color: #667eea;">📊 四种数据结构对比</h3>
+            <table class="compare-table">
+                <thead>
+                    <tr>
+                        <th style="width: 15%;">特性</th>
+                        <th style="width: 20%;">List 列表</th>
+                        <th style="width: 20%;">Dict 字典</th>
+                        <th style="width: 20%;">Class 类</th>
+                        <th style="width: 20%;">With 语句</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>作用</strong></td>
+                        <td>存储有序数据</td>
+                        <td>存储键值对</td>
+                        <td>封装对象模板</td>
+                        <td>管理资源生命周期</td>
+                    </tr>
+                    <tr>
+                        <td><strong>访问方式</strong></td>
+                        <td>索引 [0]</td>
+                        <td>键 ["key"]</td>
+                        <td>属性 .attribute</td>
+                        <td>上下文管理</td>
+                    </tr>
+                    <tr>
+                        <td><strong>类比</strong></td>
+                        <td>排队</td>
+                        <td>查字典</td>
+                        <td>做饼干模具</td>
+                        <td>自动门</td>
+                    </tr>
+                    <tr>
+                        <td><strong>LLM应用</strong></td>
+                        <td>token序列</td>
+                        <td>配置参数</td>
+                        <td>模型状态封装</td>
+                        <td>文件/资源管理</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * 切换标签页显示
+         * @param {string} tabName - 要显示的标签页名称
+         */
+        function showTab(tabName) {
+            // 隐藏所有内容卡片
+            const cards = document.querySelectorAll('.content-card');
+            cards.forEach(card => {
+                card.classList.remove('active');
+            });
+
+            // 移除所有导航标签的激活状态
+            const tabs = document.querySelectorAll('.nav-tab');
+            tabs.forEach(tab => {
+                tab.classList.remove('active');
+            });
+
+            // 显示选中的内容卡片
+            document.getElementById(tabName).classList.add('active');
+
+            // 激活对应的导航标签
+            event.target.classList.add('active');
+        }
+
+        /**
+         * 模拟运行List代码
+         * 在实际环境中，这里应该连接到Python解释器
+         * 这里使用模拟输出展示效果
+         */
+        function runListCode() {
+            const code = document.getElementById('listCode').value;
+            const output = document.getElementById('listOutput');
+
+            // 模拟代码执行结果
+            output.innerHTML = `<span style="color: #4ec9b0;"># 代码执行结果：</span>
+<span style="color: #ce9178;">['hello', 'world']</span>
+<span style="color: #ce9178;">hello</span>
+
+<span style="color: #6a9955;"># 解释：</span>
+<span style="color: #6a9955;"># my_list[0] 访问列表的第一个元素（索引从0开始）</span>
+<span style="color: #6a9955;"># 列表用方括号 [] 定义，元素之间用逗号分隔</span>`;
+        }
+
+        /**
+         * 模拟运行Dict代码
+         */
+        function runDictCode() {
+            const code = document.getElementById('dictCode').value;
+            const output = document.getElementById('dictOutput');
+
+            output.innerHTML = `<span style="color: #4ec9b0;"># 代码执行结果：</span>
+<span style="color: #ce9178;">{'name': 'Alice', 'age': 25}</span>
+<span style="color: #ce9178;">Alice</span>
+
+<span style="color: #6a9955;"># 解释：</span>
+<span style="color: #6a9955;"># 字典用花括号 {} 定义，格式为 key: value</span>
+<span style="color: #6a9955;"># 通过键名访问对应的值，就像查字典一样</span>`;
+        }
+
+        /**
+         * 模拟运行Class代码
+         */
+        function runClassCode() {
+            const code = document.getElementById('classCode').value;
+            const output = document.getElementById('classOutput');
+
+            output.innerHTML = `<span style="color: #4ec9b0;"># 代码执行结果：</span>
+<span style="color: #ce9178;">我叫小明，今年20岁</span>
+
+<span style="color: #6a9955;"># 解释：</span>
+<span style="color: #6a9955;"># class 定义了一个模板（模具）</span>
+<span style="color: #6a9955;"># __init__ 是构造函数，创建实例时自动调用</span>
+<span style="color: #6a9955;"># self 代表实例本身，用于访问实例的属性</span>`;
+        }
+
+        /**
+         * 模拟运行With代码
+         */
+        function runWithCode() {
+            const code = document.getElementById('withCode').value;
+            const output = document.getElementById('withOutput');
+
+            output.innerHTML = `<span style="color: #4ec9b0;"># 代码执行结果：</span>
+<span style="color: #ce9178;">Hello, World!</span>
+<span style="color: #ce9178;">文件已自动关闭！</span>
+
+<span style="color: #6a9955;"># 解释：</span>
+<span style="color: #6a9955;"># with 语句自动管理资源生命周期</span>
+<span style="color: #6a9955;"># 进入 with 块时打开资源，离开时自动关闭</span>
+<span style="color: #6a9955;"># 即使发生错误，资源也会被正确清理</span>`;
+        }
+
+        // 页面加载完成后的初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🐍 Python基础可视化学习页面已加载');
+            console.log('💡 提示：点击上方标签页切换不同的学习内容');
+        });
+    </script>
+</body>
+</html>
