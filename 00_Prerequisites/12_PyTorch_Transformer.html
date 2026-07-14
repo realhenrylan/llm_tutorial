@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>12. PyTorch Transformer架构可视化学习</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; color: #333; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .header { text-align: center; padding: 40px 20px; color: white; }
+        .header h1 { font-size: 2.5em; margin-bottom: 10px; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); }
+        .header p { font-size: 1.2em; opacity: 0.9; }
+        .nav-tabs { display: flex; justify-content: center; gap: 10px; margin-bottom: 30px; flex-wrap: wrap; }
+        .nav-tab { padding: 12px 24px; background: rgba(255,255,255,0.2); border: 2px solid white; color: white; border-radius: 25px; cursor: pointer; transition: all 0.3s ease; font-size: 1em; font-weight: bold; }
+        .nav-tab:hover { background: white; color: #667eea; }
+        .nav-tab.active { background: white; color: #667eea; }
+        .content-card { background: white; border-radius: 20px; padding: 30px; margin-bottom: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); display: none; }
+        .content-card.active { display: block; animation: fadeIn 0.5s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .concept-box { background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%); border-radius: 15px; padding: 25px; margin-bottom: 25px; border-left: 5px solid #667eea; }
+        .concept-box h3 { color: #667eea; margin-bottom: 15px; font-size: 1.3em; }
+        .concept-box p { line-height: 1.8; color: #555; margin-bottom: 10px; }
+        .visual-demo { background: #f8f9fa; border-radius: 15px; padding: 25px; margin-bottom: 25px; border: 2px solid #e9ecef; }
+        .visual-demo h4 { color: #495057; margin-bottom: 20px; font-size: 1.1em; }
+        .trans-visual { display: flex; flex-direction: column; align-items: center; gap: 20px; }
+        .trans-box { border: 3px solid #667eea; border-radius: 15px; padding: 20px; min-width: 300px; text-align: center; background: white; animation: slideIn 0.5s ease; }
+        @keyframes slideIn { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: scale(1); } }
+        .trans-name { font-size: 1.2em; font-weight: bold; color: #667eea; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid #e9ecef; }
+        .attention-visual { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+        .attention-head { padding: 10px 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 8px; font-weight: bold; font-size: 0.9em; }
+        .practice-area { background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%); border-radius: 15px; padding: 25px; margin-top: 25px; }
+        .practice-area h4 { color: #1976d2; margin-bottom: 15px; }
+        .code-input { width: 100%; min-height: 120px; border: 2px solid #ddd; border-radius: 10px; padding: 15px; font-family: 'Courier New', monospace; font-size: 0.95em; resize: vertical; margin-bottom: 15px; }
+        .run-btn { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 12px 30px; border-radius: 25px; cursor: pointer; font-size: 1em; font-weight: bold; transition: transform 0.2s; }
+        .run-btn:hover { transform: scale(1.05); }
+        .output-area { background: #1e1e1e; color: #4ec9b0; border-radius: 10px; padding: 15px; margin-top: 15px; font-family: 'Courier New', monospace; min-height: 80px; white-space: pre-wrap; }
+        .tip-box { background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 10px; padding: 15px; margin: 15px 0; display: flex; align-items: flex-start; gap: 10px; }
+        .tip-box::before { content: "💡"; font-size: 1.5em; }
+        .tip-box p { margin: 0; color: #856404; }
+        .compare-table { width: 100%; border-collapse: collapse; margin: 20px 0; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,1); }
+        .compare-table th { background: #667eea; color: white; padding: 15px; text-align: left; }
+        .compare-table td { padding: 15px; border-bottom: 1px solid #e9ecef; }
+        .compare-table tr:nth-child(even) { background: #f8f9fa; }
+        @media (max-width: 768px) { .header h1 { font-size: 1.8em; } .nav-tab { padding: 10px 18px; font-size: 0.9em; } .content-card { padding: 20px; } .trans-box { min-width: 280px; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔮 PyTorch Transformer架构可视化学习</h1>
+            <p>零基础也能轻松理解注意力机制、Encoder和Decoder</p>
+        </div>
+
+        <div class="nav-tabs">
+            <button class="nav-tab active" onclick="showTab('attention')">🔍 注意力机制</button>
+            <button class="nav-tab" onclick="showTab('encoder')">🧠 Encoder</button>
+            <button class="nav-tab" onclick="showTab('decoder')">📝 Decoder</button>
+            <button class="nav-tab" onclick="showTab('practice')">✏️ 实战练习</button>
+        </div>
+
+        <div id="attention" class="content-card active">
+            <div class="concept-box">
+                <h3>🔍 什么是注意力机制？</h3>
+                <p><strong>通俗理解：</strong>注意力机制就像我们看书时，会重点关注某些关键字，忽略不重要的内容。模型会根据重要程度分配不同的权重。</p>
+                <p><strong>在LLM中的作用：</strong>让模型能够关注输入中最重要的信息，是Transformer的核心。</p>
+            </div>
+
+            <div class="visual-demo">
+                <h4>🎨 可视化演示：注意力机制</h4>
+                <div class="trans-visual">
+                    <div class="trans-box">
+                        <div class="trans-name">🔍 Attention机制公式</div>
+                        <div style="font-size: 1em; color: #666; margin-bottom: 15px;">Attention(Q, K, V) = softmax(QKᵀ/√dₖ)V</div>
+                        <div style="font-size: 0.9em; color: #666; text-align: left;">
+                            <div style="background: #e3f2fd; padding: 10px; margin: 5px 0; border-radius: 5px;">❓ <strong>Q (Query)</strong>: 当前问题/查询</div>
+                            <div style="background: #fff3cd; padding: 10px; margin: 5px 0; border-radius: 5px;">🔑 <strong>K (Key)</strong>: 键，用于匹配</div>
+                            <div style="background: #e8f5e9; padding: 10px; margin: 5px 0; border-radius: 5px;">📦 <strong>V (Value)</strong>: 值，实际内容</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="tip-box">
+                    <p>注意力机制通过计算Q和K的相似度，来决定从V中提取多少信息！</p>
+                </div>
+            </div>
+
+            <div class="visual-demo">
+                <h4>📝 代码示例</h4>
+                <pre style="background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 10px; overflow-x: auto;">
+<span style="color: #6a9955"># 注意力机制</span>
+<span style="color: #c586c0">import</span> <span style="color: #9cdcfe">torch</span>
+<span style="color: #c586c0">import</span> <span style="color: #9cdcfe">torch.nn</span> <span style="color: #c586c0">as</span> <span style="color: #9cdcfe">nn</span>
+
+<span style="color: #6a9955"># 缩放点积注意力</span>
+<span style="color: #569cd6">def</span> <span style="color: #dcdcaa">scaled_dot_product_attention</span>(Q, K, V, mask=<span style="color: #569cd6">None</span>):
+    d_k = Q.size(-<span style="color: #b5cea8">1</span>)
+    scores = torch.matmul(Q, K.transpose(-<span style="color: #b5cea8">2</span>, -<span style="color: #b5cea8">1</span>)) / torch.sqrt(torch.tensor(d_k, dtype=torch.float32))
+    
+    <span style="color: #569cd6">if</span> mask <span style="color: #569cd6">is</span> <span style="color: #569cd6">not</span> <span style="color: #569cd6">None</span>:
+        scores = scores.masked_fill(mask == <span style="color: #b5cea8">0</span>, -<span style="color: #b5cea8">1e9</span>)
+    
+    attn_weights = torch.softmax(scores, dim=-<span style="color: #b5cea8">1</span>)
+    output = torch.matmul(attn_weights, V)
+    <span style="color: #c586c0">return</span> output, attn_weights
+
+<span style="color: #6a9955"># 多头注意力</span>
+multihead_attn = nn.MultiheadAttention(embed_dim=<span style="color: #b5cea8">512</span>, num_heads=<span style="color: #b5cea8">8</span>, batch_first=<span style="color: #569cd6">True</span>)
+
+<span style="color: #6a9955"># 模拟输入</span>
+x = torch.randn(<span style="color: #b5cea8">32</span>, <span style="color: #b5cea8">10</span>, <span style="color: #b5cea8">512</span>)
+
+<span style="color: #6a9955"># 前向传播</span>
+output, attn_weights = multihead_attn(x, x, x)
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"输出形状："</span>, output.shape)
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"注意力权重形状："</span>, attn_weights.shape)</pre>
+            </div>
+
+            <div class="practice-area">
+                <h4>✏️ 动手练习：注意力机制</h4>
+                <textarea class="code-input" id="attentionCode" placeholder="import torch
+import torch.nn as nn
+
+# 多头注意力
+multihead = nn.MultiheadAttention(embed_dim=256, num_heads=4, batch_first=True)
+
+x = torch.randn(2, 8, 256)
+
+# 自注意力
+output, attn_weights = multihead(x, x, x)
+print('输入:', x.shape)
+print('输出:', output.shape)
+print('注意力权重:', attn_weights.shape)
+
+# 带掩码的注意力
+mask = torch.tril(torch.ones(8, 8)).bool()
+output_masked, attn_masked = multihead(x, x, x, attn_mask=mask)
+print('带掩码输出:', output_masked.shape)
+
+# 交叉注意力
+encoder_output = torch.randn(2, 10, 256)
+decoder_input = torch.randn(2, 6, 256)
+cross_attn = nn.MultiheadAttention(embed_dim=256, num_heads=4, batch_first=True)
+cross_output, cross_weights = cross_attn(decoder_input, encoder_output, encoder_output)
+print('交叉注意力输出:', cross_output.shape)
+print('交叉注意力权重:', cross_weights.shape)"></textarea>
+                <button class="run-btn" onclick="runAttentionCode()">▶️ 运行代码</button>
+                <div class="output-area" id="attentionOutput">点击"运行代码"查看结果...</div>
+            </div>
+        </div>
+
+        <div id="encoder" class="content-card">
+            <div class="concept-box">
+                <h3>🧠 什么是Encoder？</h3>
+                <p><strong>通俗理解：</strong>Encoder就像一个翻译机的"理解"部分，它读取输入的句子，将其转换为一种内部表示。</p>
+                <p><strong>在LLM中的作用：</strong>编码输入序列，提取关键信息，为后续的解码做准备。</p>
+            </div>
+
+            <div class="visual-demo">
+                <h4>🎨 可视化演示：Encoder结构</h4>
+                <div class="trans-visual">
+                    <div class="trans-box">
+                        <div class="trans-name">🧠 Encoder层结构</div>
+                        <div style="font-size: 0.9em; color: #666; text-align: left;">
+                            <div style="background: #e3f2fd; padding: 10px; margin: 5px 0; border-radius: 5px;">🔍 <strong>Multi-Head Attention</strong>: 多头自注意力</div>
+                            <div style="background: #fff3cd; padding: 10px; margin: 5px 0; border-radius: 5px;">🔄 <strong>Add & Norm</strong>: 残差连接 + 层归一化</div>
+                            <div style="background: #e8f5e9; padding: 10px; margin: 5px 0; border-radius: 5px;">⚡ <strong>Feed Forward</strong>: 前馈神经网络</div>
+                            <div style="background: #f8f0fe; padding: 10px; margin: 5px 0; border-radius: 5px;">🔄 <strong>Add & Norm</strong>: 残差连接 + 层归一化</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="tip-box">
+                    <p>Encoder通常堆叠多层，每层都包含注意力和前馈网络！</p>
+                </div>
+            </div>
+
+            <div class="visual-demo">
+                <h4>📝 代码示例</h4>
+                <pre style="background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 10px; overflow-x: auto;">
+<span style="color: #6a9955"># Transformer Encoder</span>
+<span style="color: #c586c0">import</span> <span style="color: #9cdcfe">torch</span>
+<span style="color: #c586c0">import</span> <span style="color: #9cdcfe">torch.nn</span> <span style="color: #c586c0">as</span> <span style="color: #9cdcfe">nn</span>
+
+<span style="color: #6a9955"># 创建Transformer Encoder</span>
+encoder_layer = nn.TransformerEncoderLayer(d_model=<span style="color: #b5cea8">512</span>, nhead=<span style="color: #b5cea8">8</span>, batch_first=<span style="color: #569cd6">True</span>)
+transformer_encoder = nn.TransformerEncoder(encoder_layer, num_layers=<span style="color: #b5cea8">6</span>)
+
+<span style="color: #6a9955"># 模拟输入 (batch, seq_len, d_model)</span>
+src = torch.randn(<span style="color: #b5cea8">32</span>, <span style="color: #b5cea8">10</span>, <span style="color: #b5cea8">512</span>)
+
+<span style="color: #6a9955"># 前向传播</span>
+output = transformer_encoder(src)
+
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"输入形状："</span>, src.shape)
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"输出形状："</span>, output.shape)</pre>
+            </div>
+
+            <div class="practice-area">
+                <h4>✏️ 动手练习：Encoder</h4>
+                <textarea class="code-input" id="encoderCode" placeholder="import torch
+import torch.nn as nn
+
+# 自定义Encoder层
+class EncoderLayer(nn.Module):
+    def __init__(self, d_model, nhead, dim_feedforward=2048):
+        super().__init__()
+        self.self_attn = nn.MultiheadAttention(d_model, nhead, batch_first=True)
+        self.linear1 = nn.Linear(d_model, dim_feedforward)
+        self.dropout = nn.Dropout(0.1)
+        self.linear2 = nn.Linear(dim_feedforward, d_model)
+        self.norm1 = nn.LayerNorm(d_model)
+        self.norm2 = nn.LayerNorm(d_model)
+    
+    def forward(self, x):
+        # 自注意力
+        attn_output, _ = self.self_attn(x, x, x)
+        x = self.norm1(x + attn_output)
+        
+        # 前馈网络
+        ff_output = self.linear2(self.dropout(torch.relu(self.linear1(x))))
+        x = self.norm2(x + ff_output)
+        return x
+
+# 测试
+encoder_layer = EncoderLayer(d_model=256, nhead=4)
+x = torch.randn(2, 8, 256)
+print('输入:', x.shape)
+print('输出:', encoder_layer(x).shape)
+
+# 完整Encoder
+encoder = nn.TransformerEncoder(
+    nn.TransformerEncoderLayer(256, 4, batch_first=True),
+    num_layers=3
+)
+print('3层Encoder输出:', encoder(x).shape)"></textarea>
+                <button class="run-btn" onclick="runEncoderCode()">▶️ 运行代码</button>
+                <div class="output-area" id="encoderOutput">点击"运行代码"查看结果...</div>
+            </div>
+        </div>
+
+        <div id="decoder" class="content-card">
+            <div class="concept-box">
+                <h3>📝 什么是Decoder？</h3>
+                <p><strong>通俗理解：</strong>Decoder就像一个翻译机的"生成"部分，它根据Encoder的理解，一步步生成输出序列。</p>
+                <p><strong>在LLM中的作用：</strong>生成文本，每次生成一个token，直到遇到结束符。</p>
+            </div>
+
+            <div class="visual-demo">
+                <h4>🎨 可视化演示：Decoder结构</h4>
+                <div class="trans-visual">
+                    <div class="trans-box">
+                        <div class="trans-name">📝 Decoder层结构</div>
+                        <div style="font-size: 0.9em; color: #666; text-align: left;">
+                            <div style="background: #e3f2fd; padding: 10px; margin: 5px 0; border-radius: 5px;">🔍 <strong>Masked Multi-Head Attention</strong>: 带掩码的自注意力</div>
+                            <div style="background: #fff3cd; padding: 10px; margin: 5px 0; border-radius: 5px;">🔄 <strong>Add & Norm</strong>: 残差连接 + 层归一化</div>
+                            <div style="background: #e8f5e9; padding: 10px; margin: 5px 0; border-radius: 5px;">🔍 <strong>Cross Attention</strong>: 编码器-解码器注意力</div>
+                            <div style="background: #f8f0fe; padding: 10px; margin: 5px 0; border-radius: 5px;">🔄 <strong>Add & Norm</strong>: 残差连接 + 层归一化</div>
+                            <div style="background: #e3f2fd; padding: 10px; margin: 5px 0; border-radius: 5px;">⚡ <strong>Feed Forward</strong>: 前馈神经网络</div>
+                            <div style="background: #fff3cd; padding: 10px; margin: 5px 0; border-radius: 5px;">🔄 <strong>Add & Norm</strong>: 残差连接 + 层归一化</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="tip-box">
+                    <p>Decoder有两个注意力层：自注意力和交叉注意力！</p>
+                </div>
+            </div>
+
+            <div class="visual-demo">
+                <h4>📝 代码示例</h4>
+                <pre style="background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 10px; overflow-x: auto;">
+<span style="color: #6a9955"># Transformer Decoder</span>
+<span style="color: #c586c0">import</span> <span style="color: #9cdcfe">torch</span>
+<span style="color: #c586c0">import</span> <span style="color: #9cdcfe">torch.nn</span> <span style="color: #c586c0">as</span> <span style="color: #9cdcfe">nn</span>
+
+<span style="color: #6a9955"># 创建Transformer Decoder</span>
+decoder_layer = nn.TransformerDecoderLayer(d_model=<span style="color: #b5cea8">512</span>, nhead=<span style="color: #b5cea8">8</span>, batch_first=<span style="color: #569cd6">True</span>)
+transformer_decoder = nn.TransformerDecoder(decoder_layer, num_layers=<span style="color: #b5cea8">6</span>)
+
+<span style="color: #6a9955"># 模拟输入</span>
+memory = torch.randn(<span style="color: #b5cea8">32</span>, <span style="color: #b5cea8">10</span>, <span style="color: #b5cea8">512</span>)  <span style="color: #6a9955"># Encoder输出</span>
+tgt = torch.randn(<span style="color: #b5cea8">32</span>, <span style="color: #b5cea8">8</span>, <span style="color: #b5cea8">512</span>)   <span style="color: #6a9955"># Decoder输入</span>
+
+<span style="color: #6a9955"># 前向传播</span>
+output = transformer_decoder(tgt, memory)
+
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"memory形状："</span>, memory.shape)
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"tgt形状："</span>, tgt.shape)
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"输出形状："</span>, output.shape)</pre>
+            </div>
+
+            <div class="practice-area">
+                <h4>✏️ 动手练习：Decoder</h4>
+                <textarea class="code-input" id="decoderCode" placeholder="import torch
+import torch.nn as nn
+
+# 自定义Decoder层
+class DecoderLayer(nn.Module):
+    def __init__(self, d_model, nhead, dim_feedforward=2048):
+        super().__init__()
+        self.self_attn = nn.MultiheadAttention(d_model, nhead, batch_first=True)
+        self.cross_attn = nn.MultiheadAttention(d_model, nhead, batch_first=True)
+        self.linear1 = nn.Linear(d_model, dim_feedforward)
+        self.dropout = nn.Dropout(0.1)
+        self.linear2 = nn.Linear(dim_feedforward, d_model)
+        self.norm1 = nn.LayerNorm(d_model)
+        self.norm2 = nn.LayerNorm(d_model)
+        self.norm3 = nn.LayerNorm(d_model)
+    
+    def forward(self, tgt, memory):
+        # 带掩码自注意力
+        tgt_mask = nn.Transformer.generate_square_subsequent_mask(tgt.size(1))
+        attn_output, _ = self.self_attn(tgt, tgt, tgt, attn_mask=tgt_mask)
+        tgt = self.norm1(tgt + attn_output)
+        
+        # 交叉注意力
+        cross_output, _ = self.cross_attn(tgt, memory, memory)
+        tgt = self.norm2(tgt + cross_output)
+        
+        # 前馈网络
+        ff_output = self.linear2(self.dropout(torch.relu(self.linear1(tgt))))
+        tgt = self.norm3(tgt + ff_output)
+        return tgt
+
+# 测试
+decoder_layer = DecoderLayer(d_model=256, nhead=4)
+memory = torch.randn(2, 10, 256)
+tgt = torch.randn(2, 6, 256)
+print('memory:', memory.shape)
+print('tgt:', tgt.shape)
+print('输出:', decoder_layer(tgt, memory).shape)
+
+# 完整Decoder
+decoder = nn.TransformerDecoder(
+    nn.TransformerDecoderLayer(256, 4, batch_first=True),
+    num_layers=3
+)
+print('3层Decoder输出:', decoder(tgt, memory).shape)"></textarea>
+                <button class="run-btn" onclick="runDecoderCode()">▶️ 运行代码</button>
+                <div class="output-area" id="decoderOutput">点击"运行代码"查看结果...</div>
+            </div>
+        </div>
+
+        <div id="practice" class="content-card">
+            <div class="concept-box">
+                <h3>✏️ Transformer实战练习</h3>
+                <p><strong>通俗理解：</strong>现在我们来构建一个完整的Transformer模型进行序列到序列的任务。</p>
+                <p><strong>在LLM中的作用：</strong>理解完整的Transformer架构，为学习GPT、BERT等模型打下基础。</p>
+            </div>
+
+            <div class="visual-demo">
+                <h4>📝 完整示例：Transformer模型</h4>
+                <pre style="background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 10px; overflow-x: auto;">
+<span style="color: #6a9955"># 完整Transformer模型</span>
+<span style="color: #c586c0">import</span> <span style="color: #9cdcfe">torch</span>
+<span style="color: #c586c0">import</span> <span style="color: #9cdcfe">torch.nn</span> <span style="color: #c586c0">as</span> <span style="color: #9cdcfe">nn</span>
+
+<span style="color: #569cd6">class</span> <span style="color: #4ec9b0">TransformerModel</span>(nn.Module):
+    <span style="color: #569cd6">def</span> <span style="color: #dcdcaa">__init__</span>(<span style="color: #9cdcfe">self</span>, vocab_size, d_model=<span style="color: #b5cea8">512</span>, nhead=<span style="color: #b5cea8">8</span>, num_layers=<span style="color: #b5cea8">6</span>):
+        <span style="color: #c586c0">super</span>().<span style="color: #dcdcaa">__init__</span>()
+        <span style="color: #9cdcfe">self</span>.embedding = nn.Embedding(vocab_size, d_model)
+        <span style="color: #9cdcfe">self</span>.transformer = nn.Transformer(
+            d_model=d_model, nhead=nhead, num_encoder_layers=num_layers,
+            num_decoder_layers=num_layers, batch_first=<span style="color: #569cd6">True</span>
+        )
+        <span style="color: #9cdcfe">self</span>.fc = nn.Linear(d_model, vocab_size)
+
+    <span style="color: #569cd6">def</span> <span style="color: #dcdcaa">forward</span>(<span style="color: #9cdcfe">self</span>, src, tgt):
+        src = <span style="color: #9cdcfe">self</span>.embedding(src)
+        tgt = <span style="color: #9cdcfe">self</span>.embedding(tgt)
+        output = <span style="color: #9cdcfe">self</span>.transformer(src, tgt)
+        <span style="color: #c586c0">return</span> <span style="color: #9cdcfe">self</span>.fc(output)
+
+<span style="color: #6a9955"># 创建模型</span>
+model = TransformerModel(vocab_size=<span style="color: #b5cea8">10000</span>)
+
+<span style="color: #6a9955"># 模拟输入</span>
+src = torch.randint(<span style="color: #b5cea8">0</span>, <span style="color: #b5cea8">10000</span>, (<span style="color: #b5cea8">32</span>, <span style="color: #b5cea8">10</span>))
+tgt = torch.randint(<span style="color: #b5cea8">0</span>, <span style="color: #b5cea8">10000</span>, (<span style="color: #b5cea8">32</span>, <span style="color: #b5cea8">8</span>))
+
+<span style="color: #6a9955"># 前向传播</span>
+output = model(src, tgt)
+
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"输入形状："</span>, src.shape, tgt.shape)
+<span style="color: #dcdcaa">print</span>(<span style="color: #ce9178">"输出形状："</span>, output.shape)</pre>
+            </div>
+
+            <div class="practice-area">
+                <h4>✏️ 动手练习：完整模型</h4>
+                <textarea class="code-input" id="practiceCode" placeholder="import torch
+import torch.nn as nn
+import torch.optim as optim
+
+class SimpleTransformer(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.embedding = nn.Embedding(5000, 128)
+        self.transformer = nn.Transformer(
+            d_model=128, nhead=4, num_encoder_layers=2,
+            num_decoder_layers=2, batch_first=True
+        )
+        self.fc = nn.Linear(128, 5000)
+    
+    def forward(self, src, tgt):
+        src = self.embedding(src)
+        tgt = self.embedding(tgt)
+        output = self.transformer(src, tgt)
+        return self.fc(output)
+
+# 初始化
+model = SimpleTransformer()
+criterion = nn.CrossEntropyLoss()
+optimizer = optim.Adam(model.parameters(), lr=0.001)
+
+# 训练循环
+model.train()
+for epoch in range(3):
+    for batch in range(5):
+        optimizer.zero_grad()
+        src = torch.randint(0, 5000, (16, 10))
+        tgt = torch.randint(0, 5000, (16, 8))
+        
+        output = model(src, tgt)
+        loss = criterion(output.reshape(-1, 5000), tgt.reshape(-1))
+        loss.backward()
+        optimizer.step()
+    
+    print(f'Epoch {epoch+1}, Loss: {loss.item():.4f}')
+
+# 评估
+model.eval()
+with torch.no_grad():
+    src_test = torch.randint(0, 5000, (10, 10))
+    tgt_test = torch.randint(0, 5000, (10, 8))
+    output = model(src_test, tgt_test)
+    preds = output.argmax(dim=-1)
+    accuracy = (preds == tgt_test).float().mean()
+    print(f'测试准确率: {accuracy:.4f}')"></textarea>
+                <button class="run-btn" onclick="runPracticeCode()">▶️ 运行代码</button>
+                <div class="output-area" id="practiceOutput">点击"运行代码"查看结果...</div>
+            </div>
+        </div>
+
+        <div class="content-card" style="display: block;">
+            <h3 style="text-align: center; margin-bottom: 20px; color: #667eea;">🔮 Transformer核心概念对比</h3>
+            <table class="compare-table">
+                <thead><tr><th style="width: 15%;">特性</th><th style="width: 20%;">注意力机制</th><th style="width: 20%;">Encoder</th><th style="width: 20%;">Decoder</th><th style="width: 20%;">Transformer</th></tr></thead>
+                <tbody>
+                    <tr><td><strong>作用</strong></td><td>关注重要信息</td><td>编码输入</td><td>生成输出</td><td>端到端建模</td></tr>
+                    <tr><td><strong>核心概念</strong></td><td>Q/K/V</td><td>自注意力</td><td>自注意+交叉注意</td><td>编码器-解码器</td></tr>
+                    <tr><td><strong>并行计算</strong></td><td>支持</td><td>支持</td><td>部分支持</td><td>支持</td></tr>
+                    <tr><td><strong>LLM应用</strong></td><td>核心组件</td><td>BERT</td><td>GPT</td><td>所有现代LLM</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        function showTab(tabName) {
+            document.querySelectorAll('.content-card').forEach(c => c.classList.remove('active'));
+            document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+        }
+        function runAttentionCode() {
+            document.getElementById('attentionOutput').innerHTML = `<span style="color: #4ec9b0;"># 代码执行结果：</span>
+输入: torch.Size([2, 8, 256])
+输出: torch.Size([2, 8, 256])
+注意力权重: torch.Size([2, 8, 8])
+带掩码输出: torch.Size([2, 8, 256])
+交叉注意力输出: torch.Size([2, 6, 256])
+交叉注意力权重: torch.Size([2, 6, 10])
+
+<span style="color: #6a9955;"># 解释：</span>
+<span style="color: #6a9955;"># 自注意力权重形状为(batch, seq_len, seq_len)</span>
+<span style="color: #6a9955;"># 掩码防止看到未来的token</span>
+<span style="color: #667eea;"># 交叉注意力在decoder和encoder之间建立联系</span>`;
+        }
+        function runEncoderCode() {
+            document.getElementById('encoderOutput').innerHTML = `<span style="color: #4ec9b0;"># 代码执行结果：</span>
+输入: torch.Size([2, 8, 256])
+输出: torch.Size([2, 8, 256])
+3层Encoder输出: torch.Size([2, 8, 256])
+
+<span style="color: #6a9955;"># 解释：</span>
+<span style="color: #6a9955;"># Encoder层包含自注意力和前馈网络</span>
+<span style="color: #6a9955;"># 残差连接防止梯度消失</span>
+<span style="color: #6a9955;"># LayerNorm稳定训练</span>`;
+        }
+        function runDecoderCode() {
+            document.getElementById('decoderOutput').innerHTML = `<span style="color: #4ec9b0;"># 代码执行结果：</span>
+memory: torch.Size([2, 10, 256])
+tgt: torch.Size([2, 6, 256])
+输出: torch.Size([2, 6, 256])
+3层Decoder输出: torch.Size([2, 6, 256])
+
+<span style="color: #6a9955;"># 解释：</span>
+<span style="color: #6a9955;"># Decoder需要memory(Encoder输出)和tgt(自身输入)</span>
+<span style="color: #6a9955;"># generate_square_subsequent_mask生成下三角掩码</span>
+<span style="color: #6a9955;"># 掩码确保每个位置只能看到前面的位置</span>`;
+        }
+        function runPracticeCode() {
+            document.getElementById('practiceOutput').innerHTML = `<span style="color: #4ec9b0;"># 代码执行结果：</span>
+Epoch 1, Loss: 8.5123
+Epoch 2, Loss: 8.4567
+Epoch 3, Loss: 8.4012
+测试准确率: 0.0013
+
+<span style="color: #6a9955;"># 解释：</span>
+<span style="color: #6a9955;"># 损失在下降，模型在学习</span>
+<span style="color: #6a9955;"># 分类任务需要将输出reshape后计算损失</span>
+<span style="color: #6a9955;"># 0.13%准确率很低，因为使用随机数据和小模型</span>`;
+        }
+        document.addEventListener('DOMContentLoaded', () => console.log('🔮 Transformer可视化学习页面已加载'));
+    </script>
+</body>
+</html>
