@@ -5,6 +5,7 @@ LLM 学习教程，包含 Python 基础、PyTorch 核心、深度学习模型、
 ## 📁 目录结构
 
 ```
+python_essentials_visual.html
 00_Prerequisites/
 ├── 01_Python基础/
 │   ├── 01_Python_Essentials_for_LLM.ipynb
@@ -37,6 +38,12 @@ LLM 学习教程，包含 Python 基础、PyTorch 核心、深度学习模型、
 ## 🔗 在线预览
 
 直接点击下方链接即可在线预览 HTML 文件，无需下载。
+
+### 00_Python基础可视化
+
+| 文件 | 预览链接 |
+|------|----------|
+| python_essentials_visual | [在线预览](https://htmlpreview.github.io/?https://github.com/realhenrylan/llm_tutorial/blob/main/python_essentials_visual.html) |
 
 ### 01_Python基础
 
@@ -81,12 +88,6 @@ LLM 学习教程，包含 Python 基础、PyTorch 核心、深度学习模型、
 | 18_Performance | [在线预览](https://htmlpreview.github.io/?https://github.com/realhenrylan/llm_tutorial/blob/main/00_Prerequisites/05_工程实践/18_Performance.html) |
 | 19_Mixed_Precision | [在线预览](https://htmlpreview.github.io/?https://github.com/realhenrylan/llm_tutorial/blob/main/00_Prerequisites/05_工程实践/19_Mixed_Precision.html) |
 | 20_Best_Practices | [在线预览](https://htmlpreview.github.io/?https://github.com/realhenrylan/llm_tutorial/blob/main/00_Prerequisites/05_工程实践/20_Best_Practices.html) |
-
-### 其他文件
-
-| 文件 | 预览链接 |
-|------|----------|
-| python_essentials_visual | [在线预览](https://htmlpreview.github.io/?https://github.com/realhenrylan/llm_tutorial/blob/main/python_essentials_visual.html) |
 
 ## 📝 使用说明
 
